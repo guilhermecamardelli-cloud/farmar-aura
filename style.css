@@ -1,25 +1,51 @@
 :root{
-  --bg1:#0e0b1f; --bg2:#1d1442; --card:#1a1535; --card2:#241c4a;
+  --bg1:#0e0b1f; --bg2:#1d1442; --card:rgba(26,21,53,.8); --card2:#241c4a;
   --txt:#f3efff; --mut:#a79ecb; --aura:#b388ff; --gold:#ffd54f; --ok:#69f0ae;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%}
 body{
-  background:radial-gradient(ellipse at 30% 0%,var(--bg2),var(--bg1) 70%);
+  background:radial-gradient(ellipse at 30% 0%,var(--bg2),var(--bg1) 70%) fixed;
   color:var(--txt);font-family:system-ui,Segoe UI,Roboto,sans-serif;
   user-select:none;-webkit-user-select:none;overflow-x:hidden;
 }
-.app{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:980px;margin:0 auto;padding:16px;min-height:100%}
+/* céu animado atrás de tudo (desenhado pelo JS) */
+#ceu{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.app{display:grid;grid-template-columns:1fr 360px;gap:16px;max-width:1000px;margin:0 auto;padding:16px;min-height:100%;align-items:start}
 @media(max-width:760px){.app{grid-template-columns:1fr}}
 
 /* ---------- palco ---------- */
-.stage{background:var(--card);border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden}
+/* a luz e o chão do palco mudam de cor a cada movimento liberado */
+.stage{
+  --luz:#5b3fd655; --chao:#3a2a8a88;
+  background:
+    radial-gradient(ellipse 70% 30% at 50% 100%,var(--chao),transparent 70%),
+    radial-gradient(circle at 50% 42%,var(--luz),transparent 55%),
+    var(--card);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border:1px solid #ffffff10;border-radius:20px;padding:16px;
+  display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;
+}
+.stage[data-nivel="1"]{--luz:#2d6fd855;--chao:#1d4a9a88}
+.stage[data-nivel="2"]{--luz:#1fc8b044;--chao:#13706a88}
+.stage[data-nivel="3"]{--luz:#ff4fa844;--chao:#7a1d6a88}
 h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color:var(--mut)}
 .score{font-size:clamp(2.2rem,8vw,3.4rem);font-weight:800;color:var(--aura);text-shadow:0 0 24px var(--aura);margin-top:6px;line-height:1}
 .rate{color:var(--mut);margin:6px 0 0;font-size:.95rem}
 .rate b{color:var(--txt)}
 
+/* efeitos da Aura Dourada ativos */
+.buffs{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;min-height:0;margin-top:6px}
+.buff{position:relative;overflow:hidden;background:#ffd54f22;border:1px solid #ffd54f88;color:var(--gold);
+      font-weight:700;font-size:.85rem;padding:4px 10px 6px;border-radius:99px}
+.buff small{color:var(--txt);font-weight:400}
+.buff i{position:absolute;left:0;bottom:0;height:3px;background:var(--gold)}
+
 .arena{position:relative;width:260px;height:320px;margin:10px 0;cursor:pointer;touch-action:manipulation}
+/* chão brilhante embaixo do boneco */
+.arena::after{content:"";position:absolute;left:50%;bottom:6px;width:210px;height:36px;transform:translateX(-50%);
+  border-radius:50%;background:radial-gradient(ellipse,#b388ff40,transparent 70%);pointer-events:none}
+.gold.arena::after{background:radial-gradient(ellipse,#ffd54f40,transparent 70%)}
 .glow{
   position:absolute;left:50%;top:48%;width:var(--glow,160px);height:var(--glow,160px);
   transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
@@ -28,6 +54,25 @@ h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color
 }
 .gold .glow{background:radial-gradient(circle,rgba(255,213,79,.9),rgba(255,213,79,0) 68%)}
 @keyframes pulse{50%{opacity:.55;transform:translate(-50%,-50%) scale(1.08)}}
+.tem-arcoiris .glow{animation:pulse 2.2s ease-in-out infinite,arcoiris 5s linear infinite}
+@keyframes arcoiris{to{filter:hue-rotate(360deg)}}
+
+/* círculo de runas girando atrás do boneco */
+.runas{display:none;position:absolute;left:50%;top:48%;width:250px;height:250px;margin:-125px 0 0 -125px;
+       pointer-events:none;fill:none;stroke:var(--aura);stroke-width:1.5;opacity:.55;animation:gira 40s linear infinite}
+.gold .runas{stroke:var(--gold)}
+.tem-runas .runas{display:block}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+/* ícones das melhorias girando em volta do boneco */
+.orbita{position:absolute;left:50%;top:48%;width:0;height:0;pointer-events:none;animation:gira 36s linear infinite}
+.orbita span{position:absolute;left:-9px;top:-10px;font-size:16px;line-height:20px;filter:drop-shadow(0 0 4px #b388ff)}
+
+/* flash de câmera (Ensaio fotográfico) */
+.arena::before{content:"";position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,#fff,transparent 65%);
+  opacity:0;pointer-events:none;z-index:3}
+.arena.flash::before{animation:flash .35s ease-out}
+@keyframes flash{20%{opacity:.55}100%{opacity:0}}
 
 .char{position:absolute;left:50%;top:30px;width:0;height:0;transition:transform .08s}
 .char.spin{animation:spin .9s cubic-bezier(.3,.7,.3,1)}
@@ -38,11 +83,14 @@ h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color
 }
 
 /* ---------- boneco (SVG montado pelo JS) ---------- */
-.char svg{position:absolute;left:-100px;top:-14px;overflow:visible}
+.char svg{position:absolute;left:-100px;top:-14px;overflow:visible;transform-origin:50% 85%}
+.char svg.bump{animation:bump .14s ease-out}
+@keyframes bump{40%{transform:scale(1.04,.97)}}
 /* articulações: o JS gira cada uma; o ponto de giro (transform-origin) vem do estilo */
 .junta{transition:transform .14s ease-out}
-.shades{display:none}
-.shades.on{display:inline}
+/* acessórios: escondidos até a arena ganhar a classe "tem-..." */
+.acc{display:none}
+.tem-oculos .acc-oculos,.tem-pulseira .acc-pulseira,.tem-colar .acc-colar,.tem-coroa .acc-coroa{display:inline}
 /* mão: normal parada; aberta só quando o movimento já foi liberado e o boneco está farmando */
 .mao-aberta{display:none}
 .abrir .mao-aberta{display:inline}
@@ -55,8 +103,23 @@ h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color
 @keyframes respira{50%{transform:translateY(-3px)}}
 
 .pop{position:absolute;pointer-events:none;font-weight:800;color:var(--gold);text-shadow:0 2px 6px #000;
-     animation:pop .9s ease-out forwards;white-space:nowrap}
+     animation:pop .9s ease-out forwards;white-space:nowrap;font-size:1.1rem;z-index:4}
+.pop.grande{font-size:1.5rem}
+.pop.nota{color:var(--aura);font-size:1.4rem;animation:nota 1.6s ease-out forwards}
 @keyframes pop{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-70px)}}
+@keyframes nota{0%{opacity:0}20%{opacity:.9}100%{opacity:0;transform:translate(14px,-60px) rotate(15deg)}}
+
+/* Aura Dourada: orbe que aparece em qualquer lugar do palco */
+.dourada{position:absolute;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;z-index:6;padding:0;
+  background:radial-gradient(circle at 35% 32%,#fffbe0,#ffd54f 38%,#e09a00 72%,#a86a00);
+  box-shadow:0 0 18px 6px #ffd54faa,0 0 50px 14px #ffd54f44;
+  animation:surge .4s ease-out,flutua 2.4s ease-in-out .4s infinite}
+.dourada::after{content:"✦";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:22px;
+  text-shadow:0 0 6px #fff;animation:gira 6s linear infinite}
+.dourada.sumindo{animation:flutua 2.4s ease-in-out infinite,pisca .5s steps(2) infinite}
+@keyframes surge{from{transform:scale(0);opacity:0}}
+@keyframes flutua{50%{transform:translateY(-8px) scale(1.06)}}
+@keyframes pisca{50%{opacity:.35}}
 
 .combo{width:100%;max-width:300px}
 .combo .lbl{display:flex;justify-content:space-between;font-size:.85rem;color:var(--mut);margin-bottom:4px}
@@ -72,13 +135,25 @@ button{font:inherit;color:var(--txt);border:0;cursor:pointer}
 .nivel{font-size:.85rem;color:var(--txt);margin:6px 0 0;text-align:center}
 .nivel span{color:var(--mut)}
 
-/* ---------- loja ---------- */
-.shop{background:var(--card);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:8px}
-.shop h2{margin:0 0 4px;font-size:1rem;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
-.estilos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+/* ---------- painel lateral com abas ---------- */
+.shop{background:var(--card);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid #ffffff10;
+      border-radius:20px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.abas{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#0004;padding:4px;border-radius:12px}
+.abas button{background:none;color:var(--mut);padding:8px 2px;border-radius:9px;font-size:.82rem;font-weight:600}
+.abas button.ativo{background:var(--card2);color:var(--txt)}
+.painel{display:none;flex-direction:column;gap:8px}
+.painel.ativo{display:flex}
+.shop h2{margin:6px 0 0;font-size:.9rem;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
+.lista{display:flex;flex-direction:column;gap:8px}
+.vazio,.sub,.detalhe{margin:0;font-size:.8rem;color:var(--mut)}
+.detalhe{background:#0003;border-radius:10px;padding:8px 10px;min-height:2.6em}
+.detalhe b{color:var(--txt)}
+
+.estilos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .est{background:var(--card2);padding:8px 4px;border-radius:10px;border:2px solid transparent;font-size:.8rem}
 .est:hover{border-color:#b388ff55}
 .est.ativo{border-color:var(--aura)}
+
 .up{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;background:var(--card2);padding:10px 12px;border-radius:12px;border:2px solid transparent}
 .up:disabled{opacity:.45;cursor:not-allowed}
 .up:not(:disabled){border-color:#b388ff55}
@@ -87,5 +162,40 @@ button{font:inherit;color:var(--txt);border:0;cursor:pointer}
 .up .c{color:var(--gold);font-weight:700;text-align:right}
 .up .d{grid-column:1/2;font-size:.8rem;color:var(--mut)}
 .up .q{grid-column:2/3;text-align:right;font-size:.8rem;color:var(--ok)}
-.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:var(--mut)}
+.up.misterio{opacity:.35;filter:grayscale(1)}
+/* poderes: compra única, destacados em dourado */
+.up.poder{background:linear-gradient(135deg,#3a2a12,var(--card2) 60%)}
+.up.poder:not(:disabled){border-color:#ffd54f88}
+.up.poder:not(:disabled):hover{border-color:var(--gold)}
+
+.acc-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--card2);
+          padding:9px 12px;border-radius:12px;border:2px solid transparent}
+.acc-item small{font-size:.75rem;color:var(--mut)}
+.acc-item.on{border-color:var(--ok)}
+.acc-item:disabled{opacity:.45;cursor:not-allowed}
+
+.conqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px}
+.conq{aspect-ratio:1;background:#0004;border-radius:10px;font-size:1.25rem;border:2px solid transparent;filter:grayscale(1);opacity:.5}
+.conq.feita{background:var(--card2);border-color:#ffd54f66;filter:none;opacity:1}
+
+.stats{display:grid;grid-template-columns:1fr auto;gap:6px 10px;margin:0;font-size:.85rem}
+.stats dt{color:var(--mut)}
+.stats dd{margin:0;text-align:right;font-weight:700}
+.savebox{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.savebox button{background:var(--card2);padding:9px;border-radius:10px;border:2px solid #b388ff55;font-weight:600}
+.savebox button:hover{border-color:var(--aura)}
+textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px solid #ffffff22;border-radius:10px;
+         padding:8px;font:12px ui-monospace,monospace;user-select:text;-webkit-user-select:text}
+.foot{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:var(--mut);margin-top:4px}
 .foot button{background:none;color:var(--mut);text-decoration:underline;font-size:.75rem}
+
+/* ---------- avisos (conquistas, poderes, Aura Dourada) ---------- */
+.toasts{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;
+        z-index:20;pointer-events:none;width:min(340px,calc(100% - 32px))}
+.toast{display:flex;gap:10px;align-items:center;background:#241c4aee;border:1px solid #ffd54f66;border-radius:14px;
+       padding:10px 14px;box-shadow:0 8px 30px #0008;animation:entra .3s ease-out;transition:opacity .4s,transform .4s}
+.toast .ic{font-size:1.6rem}
+.toast b{display:block;font-size:.9rem}
+.toast small{color:var(--mut);font-size:.8rem}
+.toast.sai{opacity:0;transform:translateY(10px)}
+@keyframes entra{from{opacity:0;transform:translateY(20px)}}

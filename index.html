@@ -7,15 +7,26 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<canvas id="ceu" aria-hidden="true"></canvas>
 <div class="app">
 
-  <main class="stage" id="stage">
+  <main class="stage" id="stage" data-nivel="0">
     <h1>Farmar Aura</h1>
     <div class="score" id="score">0</div>
     <p class="rate"><b id="perClick">1</b> por clique · <b id="perSec">0</b> por segundo</p>
+    <div class="buffs" id="buffs"></div>
 
     <div class="arena" id="arena" aria-label="Clique para farmar aura">
+      <!-- círculo de runas (aparece com o Portal místico) -->
+      <svg class="runas" viewBox="-120 -120 240 240" aria-hidden="true">
+        <circle r="114" stroke-dasharray="2 9"/>
+        <circle r="98" stroke-dasharray="26 6 4 6"/>
+        <polygon points="0,-98 84.9,49 -84.9,49"/>
+        <polygon points="0,98 84.9,-49 -84.9,-49"/>
+        <circle r="56"/>
+      </svg>
       <div class="glow" id="glow"></div>
+      <div class="orbita" id="orbita"></div>
       <div class="char" id="char"><!-- o boneco é desenhado pelo JS (veja ESTILOS) --></div>
     </div>
 
@@ -28,17 +39,54 @@
     <div class="btns">
       <button class="spinbtn" id="spinBtn">🌀 Giro da Aura (espaço)<span class="cd" id="cd"></span></button>
     </div>
-    <p class="hint">Clique no boneco, ou use <b>A / D</b> e as <b>setas</b>. O giro dá aura extra.</p>
+    <p class="hint">Clique no boneco, ou use <b>A / D</b> e as <b>setas</b>. O giro dá aura extra.
+      Fique de olho na <b>Aura Dourada</b> ✨</p>
   </main>
 
   <aside class="shop">
-    <h2>Boneco</h2>
-    <div class="estilos" id="estilos"></div>
-    <h2>Melhorias</h2>
-    <div id="shopList" style="display:flex;flex-direction:column;gap:8px"></div>
-    <div class="foot"><span id="saveInfo">Salvo automaticamente</span><button id="reset">Recomeçar</button></div>
+    <nav class="abas" id="abas">
+      <button data-aba="loja" class="ativo">🛒 Loja</button>
+      <button data-aba="boneco">🧍 Boneco</button>
+      <button data-aba="conquistas">🏆 <span id="conqCount">0</span></button>
+      <button data-aba="status">📊 Status</button>
+    </nav>
+
+    <section class="painel ativo" id="aba-loja">
+      <h2>Poderes</h2>
+      <div class="lista" id="poderList"></div>
+      <p class="vazio" id="poderVazio">Compre melhorias para liberar poderes.</p>
+      <h2>Melhorias</h2>
+      <div class="lista" id="shopList"></div>
+    </section>
+
+    <section class="painel" id="aba-boneco">
+      <h2>Estilo</h2>
+      <div class="estilos" id="estilos"></div>
+      <h2>Acessórios</h2>
+      <div class="lista" id="acessorios"></div>
+    </section>
+
+    <section class="painel" id="aba-conquistas">
+      <h2>Conquistas</h2>
+      <p class="sub" id="conqInfo"></p>
+      <div class="conqs" id="conqList"></div>
+      <p class="detalhe" id="conqDetalhe">Toque numa conquista para ver o que pede.</p>
+    </section>
+
+    <section class="painel" id="aba-status">
+      <h2>Estatísticas</h2>
+      <dl class="stats" id="stats"></dl>
+      <h2>Save</h2>
+      <div class="savebox">
+        <button id="exportar">📤 Exportar</button>
+        <button id="importar">📥 Importar</button>
+      </div>
+      <textarea id="saveTxt" rows="3" placeholder="Exporte para copiar o save, ou cole aqui um save e toque em Importar"></textarea>
+      <div class="foot"><span>Salvo automaticamente</span><button id="reset">Recomeçar</button></div>
+    </section>
   </aside>
 </div>
+<div class="toasts" id="toasts"></div>
 
 <script src="game.js"></script>
 </body>

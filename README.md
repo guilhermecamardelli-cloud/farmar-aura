@@ -10,20 +10,31 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
 
 - **Clique no boneco** (ou use **A / D** e as **setas**): farma aura e aumenta o combo.
 - **Espaço** (ou o botão "Giro da Aura"): o boneco gira e ganha aura extra. Recarga de 6 s.
-- **Loja**: gaste aura em melhorias que aumentam o clique ou farmam sozinhas.
+- **Aura Dourada**: um orbe dourado aparece no palco a cada 1–3 min. Clique nele para
+  ganhar Frenesi (aura/s x7), Clique divino (clique x15) ou Sorte (pacote de aura).
+- **Loja**: melhorias (compradas várias vezes) e poderes (compra única, dobram uma melhoria
+  ou mudam uma regra, como giro mais rápido ou combo x5).
+- **Conquistas**: 44 metas; cada uma dá +2% de aura.
+- **Boneco**: 6 estilos e 8 acessórios que aparecem conforme as melhorias
+  (óculos, pulseiras, notas musicais, corrente, coroa, flashes, runas, aura arco-íris).
+- **Status**: estatísticas, exportar/importar save e recomeçar.
 
-## Estado atual
+## Estado atual (v2)
 
 - O jogo está em três arquivos: `index.html` (estrutura), `style.css` (visual)
   e `game.js` (lógica).
-- O boneco é desenhado em SVG pelo `game.js` (braços, mãos, cabelo, óculos),
-  com animações de piscar e respirar.
-- Funciona: clique (mouse/toque/teclas A, D, setas), braços alternando,
-  combo (x1 a x4), giro com a tecla Espaço (recarga de 6 s), loja com 7 melhorias,
-  brilho que cresce com a aura, salvamento em `localStorage`,
-  ganho offline (até 1 h a 50%).
+- O boneco é desenhado em SVG pelo `game.js` (braços, mãos, cabelo, acessórios),
+  com animações de piscar, respirar e "pulinho" a cada clique.
+- Fundo animado em canvas: estrelas, estrelas cadentes e partículas de aura
+  (quanto mais aura/s, mais partículas). O palco muda de cor a cada movimento liberado
+  e os ícones das melhorias giram em volta do boneco.
+- 12 melhorias (5 novas na v2), 55 poderes, 44 conquistas.
+- Save em `localStorage` com número de versão (`v`). Saves antigos são migrados
+  automaticamente (`MIGRACOES` no `game.js`); o save da v1 é lido da chave antiga.
+- Ganho offline: até 1 h a 50%.
 - Os números de balanceamento ficam no começo do `game.js`:
-  `UPGRADES`, `GROWTH`, `SPIN_CD`, `COMBO_MAX`.
+  `UPGRADES`, `GROWTH`, `SPIN_CD`, `COMBO_MAX`, `CONQ_BONUS`, `PODER_TIERS`,
+  `PODERES_EXTRA`, `DOURADA`, `CEU`, `ORBITA`.
 
 ## Regras do projeto
 

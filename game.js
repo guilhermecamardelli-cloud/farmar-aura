@@ -1,21 +1,125 @@
 (function(){
   "use strict";
 
-  /* ---------- melhorias ---------- */
+  /* ---------- formatação ---------- */
+  const SUF = ["","mil","mi","bi","tri","qua","qui","sex","sep"];
+  function fmt(n){
+    n = Math.floor(n);
+    if(n < 10000) return n.toLocaleString("pt-BR");
+    let i = 0, v = n;
+    while(v >= 1000 && i < SUF.length-1){ v /= 1000; i++; }
+    return v.toFixed(v<10?2:v<100?1:0).replace(".",",") + " " + SUF[i];
+  }
+  const emoji = u => u.name.split(" ")[0];
+  const semEmoji = u => u.name.slice(u.name.indexOf(" ") + 1);
+
+  /* ---------- melhorias (compradas várias vezes) ---------- */
   // tipo "click": soma ao valor do clique | tipo "auto": soma aura por segundo
   const UPGRADES = [
-    {id:"braco",   name:"💪 Braço mais forte",     desc:"+1 aura por clique",       type:"click", val:1,   base:15},
-    {id:"pose",    name:"😎 Pose de confiança",    desc:"+1 aura por segundo",      type:"auto",  val:1,   base:50},
-    {id:"oculos",  name:"🕶️ Óculos escuros",       desc:"+5 aura por segundo",      type:"auto",  val:5,   base:300},
-    {id:"punho",   name:"👊 Punho de ouro",        desc:"+10 aura por clique",      type:"click", val:10,  base:1000},
-    {id:"trilha",  name:"🎵 Trilha sonora épica",  desc:"+30 aura por segundo",     type:"auto",  val:30,  base:2500},
-    {id:"corrente",name:"⛓️ Corrente de ouro",     desc:"+150 aura por segundo",    type:"auto",  val:150, base:12000},
-    {id:"lenda",   name:"👑 Lenda da Aura",        desc:"+1000 aura por segundo",   type:"auto",  val:1000,base:90000}
+    {id:"braco",    name:"💪 Braço mais forte",    type:"click", val:1,     base:15},
+    {id:"pose",     name:"😎 Pose de confiança",   type:"auto",  val:1,     base:50},
+    {id:"oculos",   name:"🕶️ Óculos escuros",      type:"auto",  val:5,     base:300},
+    {id:"punho",    name:"👊 Punho de ouro",       type:"click", val:10,    base:1000},
+    {id:"trilha",   name:"🎵 Trilha sonora épica", type:"auto",  val:30,    base:2500},
+    {id:"corrente", name:"⛓️ Corrente de ouro",    type:"auto",  val:150,   base:12000},
+    {id:"lenda",    name:"👑 Lenda da Aura",       type:"auto",  val:1000,  base:90000},
+    {id:"ensaio",   name:"📸 Ensaio fotográfico",  type:"auto",  val:6000,  base:7e5},
+    {id:"academia", name:"🏋️ Academia da aura",    type:"auto",  val:40000, base:6e6},
+    {id:"portal",   name:"🔮 Portal místico",      type:"auto",  val:25e4,  base:5e7},
+    {id:"galaxia",  name:"🪐 Galáxia de aura",     type:"auto",  val:16e5,  base:4e8},
+    {id:"infinita", name:"♾️ Aura infinita",       type:"auto",  val:1e7,   base:33e8}
   ];
   const GROWTH = 1.15;
-  const SAVE_KEY = "farmar-aura-v1";
-  const SPIN_CD = 6000;       // ms
-  const COMBO_MAX = 30;
+  const SPIN_CD = 6000;        // ms
+  const COMBO_MAX = 30;        // cada 10 pontos de combo = +1 no multiplicador (x4)
+  const CONQ_BONUS = 0.02;     // cada conquista: +2% de aura
+  const OFFLINE_MAX = 3600;    // segundos
+  const OFFLINE_PCT = 0.5;
+
+  /* ---------- poderes (comprados uma vez só) ---------- */
+  // cada melhoria tem 4 poderes que dobram o que ela dá.
+  // qtd = quantas precisa ter para liberar; x = preço em vezes o preço base
+  const PODER_TIERS = [
+    {nome:"Bronze",   qtd:1,  x:10},
+    {nome:"Prata",    qtd:10, x:100},
+    {nome:"Ouro",     qtd:25, x:1000},
+    {nome:"Diamante", qtd:50, x:20000}
+  ];
+  const PODERES_EXTRA = [
+    {id:"toque1", name:"🫳 Toque de aura",     desc:"O clique ganha +1% da sua aura/s", efeito:"toque",       val:0.01, preco:1e4,    req:()=>S.stats.cliques >= 200},
+    {id:"toque2", name:"🤌 Toque lendário",    desc:"O clique ganha +2% da sua aura/s", efeito:"toque",       val:0.02, preco:2e6,    req:()=>S.stats.cliques >= 1000},
+    {id:"giro1",  name:"🌪️ Giro turbinado",    desc:"Recarga do giro cai para 4 s",     efeito:"giroCD",      val:4000, preco:5000,   req:()=>S.stats.giros >= 10},
+    {id:"giro2",  name:"💫 Giro duplo",        desc:"O giro dá o dobro de aura",        efeito:"giroX",       val:2,    preco:15e4,   req:()=>S.stats.giros >= 50},
+    {id:"combo5", name:"🔥 Ritmo insano",      desc:"O combo vai até x5",               efeito:"comboMax",    val:40,   preco:5e4,    req:()=>S.stats.maxMult >= 4},
+    {id:"sorte1", name:"🍀 Sorte dourada",     desc:"A Aura Dourada aparece 2x mais",   efeito:"douradaFreq", val:2,    preco:777777, req:()=>S.stats.douradas >= 3},
+    {id:"sorte2", name:"⏳ Brilho duradouro",  desc:"Efeitos dourados duram 2x mais",   efeito:"douradaDur",  val:2,    preco:777e4,  req:()=>S.stats.douradas >= 7}
+  ];
+  const PODERES = UPGRADES.flatMap(u => PODER_TIERS.map((t, i) => ({
+    id: u.id + "-" + i,
+    name: u.name + " · " + t.nome,
+    desc: semEmoji(u) + (u.type === "click" ? ": dobro por clique" : ": dobro de aura/s"),
+    efeito:"gerador", alvo:u.id, preco:u.base * t.x,
+    req: () => own(u.id) >= t.qtd
+  }))).concat(PODERES_EXTRA);
+
+  /* ---------- Aura Dourada ---------- */
+  const DOURADA = {
+    min:60, max:180,      // segundos até aparecer
+    vida:12,              // segundos na tela
+    sortePct:0.15,        // sorte: 15% da aura atual...
+    sorteSeg:900,         // ...mas no máximo 15 min de produção
+    efeitos:[
+      {id:"frenesi", nome:"🔥 Frenesi",       desc:"aura/s x7",  peso:5, dur:30, prod:7},
+      {id:"divino",  nome:"👆 Clique divino", desc:"clique x15", peso:2, dur:10, clique:15},
+      {id:"sorte",   nome:"🍀 Sorte",         peso:4}
+    ]
+  };
+
+  /* ---------- visual ---------- */
+  const CEU = {taxaMin:3, porDecada:6, taxaMax:45};       // partículas por segundo no fundo
+  const ORBITA = {cada:5, porMelhoria:4, max:32, raio:128}; // ícones girando em volta do boneco
+  const PODER_VISIVEIS = 4;    // a loja mostra só os poderes mais baratos
+
+  // acessórios aparecem no boneco quando você tem a melhoria "req"
+  const ACESSORIOS = [
+    {id:"oculos",   nome:"🕶️ Óculos escuros",   req:"oculos"},
+    {id:"pulseira", nome:"✨ Pulseiras de ouro", req:"punho"},
+    {id:"notas",    nome:"🎵 Notas musicais",    req:"trilha"},
+    {id:"colar",    nome:"⛓️ Corrente no peito", req:"corrente"},
+    {id:"coroa",    nome:"👑 Coroa",             req:"lenda"},
+    {id:"flash",    nome:"📸 Flashes",           req:"ensaio"},
+    {id:"runas",    nome:"🔮 Círculo de runas",  req:"portal"},
+    {id:"arcoiris", nome:"🌈 Aura arco-íris",    req:"infinita"}
+  ];
+
+  /* ---------- conquistas ---------- */
+  // cada uma dá +CONQ_BONUS de aura (clique e por segundo)
+  const CONQUISTAS = [].concat(
+    [[100,"✨","Primeira faísca"],[1e3,"🌟","Brilhando"],[1e4,"💫","Radiante"],[1e5,"🔆","Ofuscante"],
+     [1e6,"☀️","Sol particular"],[1e7,"🌠","Estrela cadente"],[1e8,"🌌","Nebulosa"],[1e9,"🪐","Planetário"],
+     [1e10,"🌀","Buraco negro"],[1e12,"♾️","Aura cósmica"]]
+      .map(([n,ic,nome]) => ({id:"total"+n, ic, nome, desc:"Farmar " + fmt(n) + " de aura no total", ok:()=>S.total >= n})),
+    [[10,"🌱","Hortinha de aura"],[100,"🚜","Fazenda de aura"],[1e3,"🏭","Fábrica de aura"],
+     [1e4,"🏙️","Metrópole da aura"],[1e5,"🌍","Aura global"],[1e6,"🛸","Aura interestelar"]]
+      .map(([n,ic,nome]) => ({id:"seg"+n, ic, nome, desc:"Chegar a " + fmt(n) + " de aura/s", ok:()=>perSecBase() >= n})),
+    [[100,"👆","Dedo nervoso"],[1000,"🖐️","Mão calejada"],[10000,"🦾","Braço biônico"]]
+      .map(([n,ic,nome]) => ({id:"clique"+n, ic, nome, desc:"Clicar " + fmt(n) + " vezes", ok:()=>S.stats.cliques >= n})),
+    [[10,"🌀","Rodopio"],[100,"🌪️","Furacão humano"]]
+      .map(([n,ic,nome]) => ({id:"giro"+n, ic, nome, desc:"Fazer " + n + " Giros da Aura", ok:()=>S.stats.giros >= n})),
+    [[1,"🟡","Sortudo"],[10,"💛","Caçador de ouro"],[50,"🏅","Rei Midas"]]
+      .map(([n,ic,nome]) => ({id:"dourada"+n, ic, nome, desc:"Pegar " + n + " Aura" + (n>1?"s Douradas":" Dourada"), ok:()=>S.stats.douradas >= n})),
+    UPGRADES.map(u => ({id:"cinquenta-"+u.id, ic:emoji(u), nome:semEmoji(u) + " x50", desc:"Ter 50 de " + semEmoji(u), ok:()=>own(u.id) >= 50})),
+    [
+      {id:"combo4",  ic:"🔥", nome:"Ritmo perfeito",   desc:"Chegar ao combo x4",                ok:()=>S.stats.maxMult >= 4},
+      {id:"combo5",  ic:"☄️", nome:"Fora de controle", desc:"Chegar ao combo x5",                ok:()=>S.stats.maxMult >= 5},
+      {id:"estilos", ic:"🎭", nome:"Mil faces",        desc:"Usar os 6 estilos de boneco",       ok:()=>S.stats.estilos.length >= Object.keys(ESTILOS).length},
+      {id:"todos",   ic:"🧩", nome:"Colecionador",     desc:"Ter pelo menos 1 de cada melhoria", ok:()=>UPGRADES.every(u=>own(u.id) >= 1)},
+      {id:"dez",     ic:"📦", nome:"Estoque cheio",    desc:"Ter 10 de cada melhoria",           ok:()=>UPGRADES.every(u=>own(u.id) >= 10)},
+      {id:"poder5",  ic:"⚡", nome:"Poderoso",         desc:"Comprar 5 poderes",                 ok:()=>S.poderes.length >= 5},
+      {id:"poder20", ic:"🔱", nome:"Onipotente",       desc:"Comprar 20 poderes",                ok:()=>S.poderes.length >= 20},
+      {id:"estilo",  ic:"💎", nome:"Estiloso",         desc:"Liberar todos os acessórios",       ok:()=>ACESSORIOS.every(a=>own(a.req) > 0)}
+    ]
+  );
 
   /* ---------- movimentos (liberados conforme a aura total) ---------- */
   // ângulos em graus: o = ombro, c = cotovelo, p = pulso (L = esquerdo, R = direito)
@@ -45,7 +149,7 @@
     ]}
   ];
 
-  /* ---------- desenho: rosto e mãos (reaproveitados pelos estilos) ---------- */
+  /* ---------- desenho: rosto, mãos e acessórios (reaproveitados pelos estilos) ---------- */
   // rosto confiante: olhar de canto, sobrancelha levantada, sorriso de lado
   function rosto(x, y, escala, cor = "#1b1b1b", olho = "#fff"){
     return `<g transform="translate(${x} ${y}) scale(${escala})">
@@ -59,13 +163,33 @@
         <path d="M5 -2 L35 -3" stroke="${cor}" stroke-width="4.5" stroke-linecap="round"/>
       </g>
       <path d="M-12 25 Q2 31 14 18" fill="none" stroke="${cor}" stroke-width="3.5" stroke-linecap="round"/>
-      <g id="shades" class="shades">
+      <g class="acc acc-oculos">
         <rect x="-38" y="-10" width="33" height="18" rx="6" fill="#111"/>
         <rect x="5" y="-10" width="33" height="18" rx="6" fill="#111"/>
         <rect x="-6" y="-5" width="12" height="4" fill="#111"/>
         <rect x="-33" y="-7" width="9" height="3" rx="1.5" fill="#fff" opacity=".5"/>
         <rect x="10" y="-7" width="9" height="3" rx="1.5" fill="#fff" opacity=".5"/>
       </g>
+    </g>`;
+  }
+
+  // coroa com a base no ponto (0,0)
+  function coroa([x, y, s]){
+    return `<g class="acc acc-coroa" transform="translate(${x} ${y}) scale(${s})">
+      <path d="M-24 0 L-28 -24 L-13 -11 L0 -30 L13 -11 L28 -24 L24 0 Z" fill="#ffd54f" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="-23" y="-7" width="46" height="5" fill="#f0b400"/>
+      <circle cx="0" cy="-30" r="3.5" fill="#ff5c8a" stroke="#1b1b1b" stroke-width="1.5"/>
+      <circle cx="-28" cy="-24" r="3" fill="#69f0ae" stroke="#1b1b1b" stroke-width="1.5"/>
+      <circle cx="28" cy="-24" r="3" fill="#69f0ae" stroke="#1b1b1b" stroke-width="1.5"/>
+    </g>`;
+  }
+  // corrente pendurada a partir do ponto (0,0), com medalhão "A"
+  function colar([x, y, s]){
+    return `<g class="acc acc-colar" transform="translate(${x} ${y}) scale(${s})">
+      <path d="M-22 0 Q0 30 22 0" fill="none" stroke="#1b1b1b" stroke-width="6" stroke-linecap="round"/>
+      <path d="M-22 0 Q0 30 22 0" fill="none" stroke="#ffd54f" stroke-width="3.5" stroke-dasharray="4 2.5" stroke-linecap="round"/>
+      <circle cx="0" cy="17" r="6.5" fill="#ffd54f" stroke="#1b1b1b" stroke-width="2"/>
+      <text x="0" y="20.5" font-size="9" text-anchor="middle" font-weight="900" fill="#1b1b1b">A</text>
     </g>`;
   }
 
@@ -103,6 +227,7 @@
   /* ---------- estilos de boneco ---------- */
   // cada estilo diz onde fica o ombro (do braço esquerdo), o tamanho dos braços,
   // as cores e o desenho das partes. O braço direito é o esquerdo espelhado.
+  // coroa e colar = [x, y, escala] de onde os acessórios ficam
   const PELE = "#ffcfa3";
   const CLARO = "#f3efff";
   const ESTILOS = {
@@ -110,7 +235,7 @@
       nome:"😎 Chibi",
       ombro:[78,142], braco:24, antebraco:24, grossura:14, forma:"tubo",
       corBraco:"url(#roupa)", corAntebraco:"url(#roupa)", mao:"redonda", corMao:PELE, tamMao:1.1,
-      pescoco:[100,132], quadril:[100,196],
+      pescoco:[100,132], quadril:[100,196], coroa:[100,24,1], colar:[100,138,1],
       fundo:`
         <ellipse cx="100" cy="246" rx="46" ry="7" fill="#000" opacity=".35"/>
         <rect x="82" y="188" width="16" height="44" rx="7" fill="url(#calca)" stroke="#1b1b1b" stroke-width="3"/>
@@ -132,7 +257,7 @@
       nome:"🙂 Cartoon",
       ombro:[63,100], braco:40, antebraco:40, grossura:16, forma:"tubo",
       corBraco:"url(#roupa)", corAntebraco:"url(#pele)", mao:"redonda", corMao:PELE, tamMao:1,
-      pescoco:[100,88], quadril:[100,190],
+      pescoco:[100,88], quadril:[100,190], coroa:[100,20,.75], colar:[100,92,1],
       fundo:`
         <ellipse cx="100" cy="282" rx="48" ry="8" fill="#000" opacity=".35"/>
         <rect x="76" y="185" width="20" height="82" rx="8" fill="url(#calca)" stroke="#1b1b1b" stroke-width="3"/>
@@ -153,7 +278,7 @@
       nome:"🧱 Blocado",
       ombro:[61,122], braco:28, antebraco:28, grossura:16, forma:"bloco",
       corBraco:"#ff7043", corAntebraco:"url(#pele)", mao:"bloco", corMao:PELE, tamMao:1,
-      pescoco:[100,116], quadril:[100,180],
+      pescoco:[100,116], quadril:[100,180], coroa:[100,37,.85], colar:[100,118,1],
       fundo:`
         <ellipse cx="100" cy="246" rx="44" ry="7" fill="#000" opacity=".35"/>
         <rect x="80" y="176" width="19" height="58" fill="#37306b" stroke="#1b1b1b" stroke-width="3"/>
@@ -174,7 +299,7 @@
       nome:"🫘 Jujuba",
       ombro:[57,124], braco:24, antebraco:24, grossura:16, forma:"tubo",
       corBraco:"url(#jujuba)", corAntebraco:"url(#jujuba)", mao:"redonda", corMao:"#f5a623", tamMao:1,
-      pescoco:[100,110], quadril:[100,210],
+      pescoco:[100,110], quadril:[100,210], coroa:[100,46,.85], colar:[100,112,1],
       fundo:`
         <ellipse cx="100" cy="234" rx="46" ry="7" fill="#000" opacity=".35"/>
         <ellipse cx="82" cy="222" rx="15" ry="8" fill="#c76a00" stroke="#1b1b1b" stroke-width="3"/>
@@ -190,7 +315,7 @@
       nome:"✏️ Palitinho",
       ombro:[100,116], braco:30, antebraco:28, grossura:5, forma:"linha",
       corBraco:CLARO, corAntebraco:CLARO, mao:"palito", corMao:CLARO, tamMao:1.2,
-      pescoco:[100,104], quadril:[100,172],
+      pescoco:[100,104], quadril:[100,172], coroa:[100,42,.6], colar:[100,106,.7],
       fundo:`
         <ellipse cx="100" cy="246" rx="40" ry="6" fill="#000" opacity=".35"/>
         <path d="M100 170 L84 240 M100 170 L116 240" stroke="${CLARO}" stroke-width="5" stroke-linecap="round" fill="none"/>`,
@@ -204,7 +329,7 @@
       nome:"👻 Espírito",
       ombro:[56,136], braco:20, antebraco:20, grossura:12, forma:"tubo",
       corBraco:"url(#espirito)", corAntebraco:"url(#espirito)", mao:"redonda", corMao:"#8f80f0", tamMao:0.9,
-      pescoco:[100,130], quadril:[100,200],
+      pescoco:[100,130], quadril:[100,200], coroa:[100,46,.8], colar:[100,132,1],
       fundo:`<ellipse cx="100" cy="240" rx="36" ry="6" fill="#000" opacity=".3"/>`,
       tronco:`
         <path d="M100 40 Q152 40 152 122 Q152 184 128 210 L119 194 L110 214 L100 196 L90 214 L81 194 L72 210 Q48 184 48 122 Q48 40 100 40 Z"
@@ -237,6 +362,7 @@
         ${peca(y, e.braco, e.corBraco)}
         <g id="cotovelo${lado}" class="junta" style="transform-origin:${x}px ${yCotovelo}px">
           ${peca(yCotovelo, e.antebraco, e.corAntebraco)}
+          <ellipse class="acc acc-pulseira" cx="${x}" cy="${yPulso-3}" rx="${w/2+2.5}" ry="3.5" fill="#ffd54f" stroke="#1b1b1b" stroke-width="1.5"/>
           <g id="pulso${lado}" class="junta" style="transform-origin:${x}px ${yPulso}px">
             <g transform="translate(${x} ${yPulso}) scale(${e.tamMao})">
               <g class="mao-normal">${mao.normal(e.corMao)}</g>
@@ -247,17 +373,32 @@
       </g>`;
   }
 
-  /* ---------- estado ---------- */
+  /* ---------- estado e save ---------- */
+  const SAVE_KEY = "farmar-aura";
+  const SAVE_ANTIGO = "farmar-aura-v1";   // chave usada pela versão 1 do jogo
+  const SAVE_VERSAO = 2;
   let S = fresh();
-  function fresh(){ return {aura:0, total:0, owned:{}, spinReadyAt:0, saved:Date.now(), estilo:"chibi", nivel:0}; }
-
+  function fresh(){
+    return {v:SAVE_VERSAO, aura:0, total:0, owned:{}, poderes:[], conquistas:[], ocultos:[],
+      stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:["chibi"], inicio:Date.now()},
+      spinReadyAt:0, saved:Date.now(), estilo:"chibi", nivel:0};
+  }
+  // cada migração leva um save da versão n para a n+1
+  const MIGRACOES = {
+    1: d => Object.assign(d, {poderes:[], conquistas:[], ocultos:[],
+      stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:[d.estilo || "chibi"], inicio:Date.now()}})
+  };
+  function lerSave(txt){
+    let d = JSON.parse(txt);
+    if(!d || typeof d.aura !== "number") throw new Error("save inválido");
+    for(let v = d.v || 1; v < SAVE_VERSAO; v++){ d = MIGRACOES[v](d); d.v = v + 1; }
+    const f = fresh();
+    return Object.assign(f, d, {owned:d.owned || {}, stats:Object.assign(f.stats, d.stats)});
+  }
   function load(){
     try{
-      const raw = localStorage.getItem(SAVE_KEY);
-      if(!raw) return;
-      const d = JSON.parse(raw);
-      S = Object.assign(fresh(), d);
-      S.owned = d.owned || {};
+      const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(SAVE_ANTIGO);
+      if(raw) S = lerSave(raw);
     }catch(e){}
   }
   function save(){
@@ -265,38 +406,45 @@
   }
 
   /* ---------- cálculos ---------- */
+  let buffs = [];                      // efeitos da Aura Dourada ativos
+  let combo = 0;                       // 0..comboMax()
   const own = id => S.owned[id] || 0;
+  const tem = id => S.poderes.includes(id);
   const cost = u => Math.floor(u.base * Math.pow(GROWTH, own(u.id)));
-  function clickBase(){ return 1 + UPGRADES.filter(u=>u.type==="click").reduce((a,u)=>a+u.val*own(u.id),0); }
-  function perSec(){ return UPGRADES.filter(u=>u.type==="auto").reduce((a,u)=>a+u.val*own(u.id),0); }
+  const ativos = efeito => PODERES.filter(p => p.efeito === efeito && tem(p.id));
+  const fator = efeito => ativos(efeito).reduce((a,p)=>a*p.val, 1);
+  const multGerador = u => Math.pow(2, ativos("gerador").filter(p => p.alvo === u.id).length);
+  const producao = u => u.val * own(u.id) * multGerador(u);
+  const soma = tipo => UPGRADES.filter(u => u.type === tipo).reduce((a,u)=>a+producao(u), 0);
+  const bonusConq = () => 1 + S.conquistas.length * CONQ_BONUS;
+  const buffMult = k => buffs.reduce((a,b)=>a*(b[k] || 1), 1);
+  const perSecBase = () => soma("auto") * bonusConq();        // sem efeitos dourados
+  const perSec = () => perSecBase() * buffMult("prod");
+  const toque = () => ativos("toque").reduce((a,p)=>a+p.val, 0);
+  const clickBase = () => (1 + soma("click")) * bonusConq() + perSec() * toque();
+  const comboMax = () => Math.max(COMBO_MAX, ...ativos("comboMax").map(p=>p.val));
+  const mult = () => 1 + Math.floor(combo/10);   // x1 .. x4 (x5 com Ritmo insano)
+  const perClick = () => clickBase() * mult() * buffMult("clique");
+  const spinCD = () => Math.min(SPIN_CD, ...ativos("giroCD").map(p=>p.val));
+  const accOn = id => { const a = ACESSORIOS.find(x=>x.id===id); return own(a.req) > 0 && !S.ocultos.includes(id); };
   function nivelAtual(){
     let n = 0;
     NIVEIS.forEach((nv, i)=>{ if(S.total >= nv.aura) n = i; });
     return n;
   }
-
-  let combo = 0;                       // 0..COMBO_MAX
-  const mult = () => 1 + Math.floor(combo/10);   // x1 .. x4
-  const perClick = () => clickBase() * mult();
-
-  /* ---------- formatação ---------- */
-  const SUF = ["","mil","mi","bi","tri","qua"];
-  function fmt(n){
-    n = Math.floor(n);
-    if(n < 10000) return n.toLocaleString("pt-BR");
-    let i = 0, v = n;
-    while(v >= 1000 && i < SUF.length-1){ v /= 1000; i++; }
-    return v.toFixed(v<10?2:v<100?1:0).replace(".",",") + " " + SUF[i];
-  }
+  function ganhar(g){ S.aura += g; S.total += g; }
 
   /* ---------- elementos ---------- */
   const $ = id => document.getElementById(id);
   const el = {
-    score:$("score"), perClick:$("perClick"), perSec:$("perSec"),
-    arena:$("arena"), char:$("char"), glow:$("glow"),
+    score:$("score"), perClick:$("perClick"), perSec:$("perSec"), buffs:$("buffs"),
+    arena:$("arena"), char:$("char"), glow:$("glow"), orbita:$("orbita"),
     stage:$("stage"), comboBar:$("comboBar"), mult:$("mult"), nivelInfo:$("nivelInfo"),
     spinBtn:$("spinBtn"), cd:$("cd"), shop:$("shopList"), reset:$("reset"),
-    svg:null, shades:null   // preenchidos quando o boneco é montado
+    poderList:$("poderList"), poderVazio:$("poderVazio"), acess:$("acessorios"),
+    conqList:$("conqList"), conqInfo:$("conqInfo"), conqDetalhe:$("conqDetalhe"), conqCount:$("conqCount"),
+    stats:$("stats"), saveTxt:$("saveTxt"), toasts:$("toasts"),
+    svg:null   // preenchido quando o boneco é montado
   };
 
   /* ---------- boneco: montar e mexer ---------- */
@@ -308,14 +456,14 @@
       <g class="respira">
         <g id="corpo" class="junta" style="transform-origin:${e.quadril[0]}px ${e.quadril[1]}px">
           ${e.tronco}
-          <g id="cabeca" class="junta" style="transform-origin:${e.pescoco[0]}px ${e.pescoco[1]}px">${e.cabeca}</g>
+          ${colar(e.colar)}
+          <g id="cabeca" class="junta" style="transform-origin:${e.pescoco[0]}px ${e.pescoco[1]}px">${e.cabeca}${coroa(e.coroa)}</g>
           ${braco(e, "L")}
           <g transform="translate(200 0) scale(-1 1)">${braco(e, "R")}</g>
         </g>
       </g>
     </svg>`;
     el.svg = el.char.querySelector("svg");
-    el.shades = $("shades");
     juntas = {
       oL:$("ombroL"), cL:$("cotoveloL"), pL:$("pulsoL"),
       oR:$("ombroR"), cR:$("cotoveloR"), pR:$("pulsoR"),
@@ -336,6 +484,21 @@
     clearTimeout(restTimer);
     restTimer = setTimeout(()=>{ setPose(REST); el.svg.classList.remove("abrir"); }, 900);
   }
+  // reinicia uma animação CSS (remove a classe e coloca de novo)
+  function animar(alvo, classe){
+    alvo.classList.remove(classe); void alvo.getBoundingClientRect(); alvo.classList.add(classe);
+  }
+
+  /* ---------- abas ---------- */
+  let aba = "loja";
+  document.querySelectorAll("#abas button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      aba = b.dataset.aba;
+      document.querySelectorAll("#abas button").forEach(x=>x.classList.toggle("ativo", x === b));
+      document.querySelectorAll(".painel").forEach(p=>p.classList.toggle("ativo", p.id === "aba-" + aba));
+      renderLento();
+    });
+  });
 
   /* ---------- menu de estilos ---------- */
   const estiloBtns = {};
@@ -343,7 +506,11 @@
     const b = document.createElement("button");
     b.className = "est";
     b.textContent = ESTILOS[k].nome;
-    b.addEventListener("click", ()=>{ S.estilo = k; montarBoneco(k); save(); render(); });
+    b.addEventListener("click", ()=>{
+      S.estilo = k;
+      if(!S.stats.estilos.includes(k)) S.stats.estilos.push(k);
+      montarBoneco(k); save(); render();
+    });
     $("estilos").appendChild(b);
     estiloBtns[k] = b;
   });
@@ -365,15 +532,26 @@
     S.owned[u.id] = own(u.id) + 1;
     save(); render();
   }
+  function comprarPoder(p){
+    if(S.aura < p.preco || tem(p.id)) return;
+    S.aura -= p.preco;
+    S.poderes.push(p.id);
+    toast("⚡", p.name, p.desc);
+    save(); render();
+  }
 
   /* ---------- ações ---------- */
   function farm(x, y){
     // cada clique leva o boneco para a próxima pose
     nextPose();
+    animar(el.svg, "bump");
 
-    combo = Math.min(COMBO_MAX, combo + 1.2);
+    combo = Math.min(comboMax(), combo + 1.2);
     const g = perClick();
-    S.aura += g; S.total += g;
+    ganhar(g);
+    S.stats.cliques++;
+    S.stats.auraClique += g;
+    S.stats.maxMult = Math.max(S.stats.maxMult, mult());
     popup("+" + fmt(g), x, y);
     render();
   }
@@ -381,24 +559,89 @@
   function spin(){
     const now = Date.now();
     if(now < S.spinReadyAt) return;
-    S.spinReadyAt = now + SPIN_CD;
-    const bonus = clickBase()*20*mult() + perSec()*10;
-    S.aura += bonus; S.total += bonus;
-    el.char.classList.remove("spin"); void el.char.offsetWidth; el.char.classList.add("spin");
-    const r = el.arena.getBoundingClientRect();
-    popup("🌀 +" + fmt(bonus), r.width/2, 30, true);
+    S.spinReadyAt = now + spinCD();
+    const bonus = (clickBase()*20*mult() + perSec()*10) * fator("giroX");
+    ganhar(bonus);
+    S.stats.giros++;
+    animar(el.char, "spin");
+    popup("🌀 +" + fmt(bonus), el.arena.clientWidth/2, 30, "grande");
     save(); render();
   }
 
-  function popup(txt, x, y, big){
+  function popup(txt, x, y, classe){
     const p = document.createElement("div");
-    p.className = "pop";
+    p.className = "pop" + (classe ? " " + classe : "");
     p.textContent = txt;
     p.style.left = (x - 20 + (Math.random()*30-15)) + "px";
     p.style.top  = (y - 10) + "px";
-    p.style.fontSize = big ? "1.5rem" : "1.1rem";
     el.arena.appendChild(p);
-    setTimeout(()=>p.remove(), 900);
+    setTimeout(()=>p.remove(), classe === "nota" ? 1600 : 900);
+  }
+
+  function toast(ic, titulo, txt){
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.innerHTML = `<span class="ic">${ic}</span><div><b>${titulo}</b><small>${txt}</small></div>`;
+    el.toasts.appendChild(t);
+    setTimeout(()=>t.classList.add("sai"), 3200);
+    setTimeout(()=>t.remove(), 3700);
+  }
+
+  /* ---------- Aura Dourada ---------- */
+  let dourada = null, proxDourada = 0;
+  function agendarDourada(){
+    const seg = DOURADA.min + Math.random()*(DOURADA.max - DOURADA.min);
+    proxDourada = Date.now() + seg*1000 / fator("douradaFreq");
+  }
+  function mostrarDourada(){
+    const d = document.createElement("button");
+    d.className = "dourada";
+    d.setAttribute("aria-label", "Aura Dourada");
+    d.style.left = (6 + Math.random()*78) + "%";
+    d.style.top  = (8 + Math.random()*72) + "%";
+    d.fim = Date.now() + DOURADA.vida*1000;
+    d.addEventListener("pointerdown", e=>{ e.preventDefault(); e.stopPropagation(); pegarDourada(); });
+    el.stage.appendChild(d);
+    dourada = d;
+  }
+  function sumirDourada(){
+    if(dourada){ dourada.remove(); dourada = null; }
+    agendarDourada();
+  }
+  function sortearEfeito(){
+    let r = Math.random() * DOURADA.efeitos.reduce((a,e)=>a+e.peso, 0);
+    for(const ef of DOURADA.efeitos){ r -= ef.peso; if(r < 0) return ef; }
+    return DOURADA.efeitos[0];
+  }
+  function pegarDourada(){
+    if(!dourada) return;
+    const ef = sortearEfeito();
+    const meio = el.arena.clientWidth/2 - 30;
+    S.stats.douradas++;
+    if(ef.dur){
+      const dur = ef.dur * fator("douradaDur");
+      buffs = buffs.filter(b=>b.id !== ef.id);
+      buffs.push({id:ef.id, nome:ef.nome, desc:ef.desc, prod:ef.prod, clique:ef.clique, dur, fim:Date.now() + dur*1000});
+      popup(ef.nome + "!", meio, 40, "grande");
+      toast("🟡", ef.nome, ef.desc + " por " + Math.round(dur) + " s");
+    }else{
+      const g = Math.min(S.aura*DOURADA.sortePct, perSec()*DOURADA.sorteSeg) + 13;
+      ganhar(g);
+      popup("🍀 +" + fmt(g), meio, 40, "grande");
+      toast("🟡", ef.nome, "+" + fmt(g) + " de aura");
+    }
+    sumirDourada(); save(); render();
+  }
+
+  /* ---------- conquistas ---------- */
+  function checarConquistas(){
+    const novas = CONQUISTAS.filter(c => !S.conquistas.includes(c.id) && c.ok());
+    if(!novas.length) return;
+    novas.forEach(c => S.conquistas.push(c.id));
+    // muitas de uma vez (save antigo) viram um aviso só
+    if(novas.length > 3) toast("🏆", novas.length + " conquistas!", "Veja na aba de conquistas");
+    else novas.forEach(c => toast(c.ic, "Conquista: " + c.nome, c.desc));
+    save();
   }
 
   /* ---------- entrada ---------- */
@@ -409,7 +652,7 @@
   });
   el.spinBtn.addEventListener("click", spin);
   window.addEventListener("keydown", e=>{
-    if(e.repeat) return;
+    if(e.repeat || e.target.tagName === "TEXTAREA") return;
     const k = e.key.toLowerCase();
     if(k===" "){ e.preventDefault(); spin(); }
     else if(["a","d","arrowleft","arrowright"].includes(k)){
@@ -420,67 +663,298 @@
   el.reset.addEventListener("click", ()=>{
     if(confirm("Apagar todo o progresso e recomeçar?")){
       const estilo = S.estilo;          // o boneco escolhido continua o mesmo
-      S = fresh(); S.estilo = estilo; combo = 0; save(); render();
+      S = fresh(); S.estilo = estilo; S.stats.estilos = [estilo];
+      combo = 0; buffs = [];
+      sumirDourada(); save(); render(); renderLento();
     }
   });
 
-  /* ---------- render ---------- */
+  // exportar/importar: o save vira um texto (base64) que dá para copiar e colar
+  $("exportar").addEventListener("click", ()=>{
+    save();
+    el.saveTxt.value = btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+    el.saveTxt.select();
+    if(navigator.clipboard) navigator.clipboard.writeText(el.saveTxt.value).then(
+      ()=>toast("📤", "Save copiado", "Guarde esse texto em algum lugar seguro"), ()=>{});
+  });
+  $("importar").addEventListener("click", ()=>{
+    const txt = el.saveTxt.value.trim();
+    if(!txt) return toast("📥", "Cole um save", "Cole o texto exportado na caixa abaixo");
+    try{
+      const novo = lerSave(decodeURIComponent(escape(atob(txt))));
+      if(!confirm("Trocar o progresso atual por esse save?")) return;
+      S = novo; combo = 0; buffs = [];
+      montarBoneco(S.estilo); save(); render(); renderLento();
+      el.saveTxt.value = "";
+      toast("📥", "Save importado", fmt(S.aura) + " de aura");
+    }catch(e){
+      toast("⚠️", "Save inválido", "Confira se copiou o texto inteiro");
+    }
+  });
+
+  /* ---------- fundo animado (canvas) ---------- */
+  // estrelas piscando, partículas de aura subindo (mais aura/s = mais partículas) e estrelas cadentes
+  const ceu = $("ceu"), ctx = ceu.getContext("2d");
+  let W = 0, H = 0, estrelas = [], motes = [], acum = 0, cadente = null, proxCadente = 5;
+  function ajustarCeu(){
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    ceu.width = W*dpr; ceu.height = H*dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    estrelas = Array.from({length: Math.round(W*H/7000)}, ()=>({
+      x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.3 + .3, f:Math.random()*6.3, v:.4 + Math.random()*1.6
+    }));
+  }
+  window.addEventListener("resize", ajustarCeu);
+  ajustarCeu();
+  function bolinha(x, y, r, cor, alfa){
+    ctx.globalAlpha = alfa; ctx.fillStyle = cor;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
+  }
+  function desenharCeu(dt, t){
+    ctx.clearRect(0, 0, W, H);
+    for(const s of estrelas) bolinha(s.x, s.y, s.r, "#fff", .25 + .6*Math.abs(Math.sin(t*.001*s.v + s.f)));
+
+    const taxa = Math.min(CEU.taxaMax, CEU.taxaMin + Math.log10(perSec() + 1)*CEU.porDecada);
+    const chanceOuro = S.total >= 1e5 ? .4 : .08;
+    acum += taxa*dt;
+    while(acum >= 1 && motes.length < 400){
+      acum--;
+      motes.push({x:Math.random()*W, y:H + 10, vx:(Math.random()-.5)*12, vy:18 + Math.random()*40,
+                  r:1 + Math.random()*2.4, vida:0, max:6 + Math.random()*7, ouro:Math.random() < chanceOuro});
+    }
+    motes = motes.filter(m => (m.vida += dt) < m.max && m.y > -10);
+    for(const m of motes){
+      m.x += m.vx*dt + Math.sin(m.vida*2 + m.r)*.3; m.y -= m.vy*dt;
+      const a = Math.sin(Math.PI * m.vida/m.max), cor = m.ouro ? "#ffd54f" : "#b388ff";
+      bolinha(m.x, m.y, m.r*3, cor, a*.12);
+      bolinha(m.x, m.y, m.r, cor, a*.8);
+    }
+
+    proxCadente -= dt;
+    if(!cadente && proxCadente <= 0){
+      cadente = {x:Math.random()*W*.7, y:Math.random()*H*.35, vida:0};
+      proxCadente = 6 + Math.random()*10;
+    }
+    if(cadente){
+      cadente.vida += dt;
+      const x = cadente.x + cadente.vida*520, y = cadente.y + cadente.vida*220;
+      const g = ctx.createLinearGradient(x - 120, y - 51, x, y);
+      g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(255,255,255,.9)");
+      ctx.globalAlpha = 1 - cadente.vida/.9; ctx.strokeStyle = g; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x - 120, y - 51); ctx.lineTo(x, y); ctx.stroke();
+      if(cadente.vida > .9) cadente = null;
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* ---------- render (todo quadro) ---------- */
   function render(){
     el.score.textContent = fmt(S.aura);
     el.perClick.textContent = fmt(perClick());
     el.perSec.textContent = fmt(perSec());
     el.mult.textContent = "x" + mult();
-    el.comboBar.style.width = (combo/COMBO_MAX*100) + "%";
+    el.comboBar.style.width = (combo/comboMax()*100) + "%";
 
     // brilho cresce com a aura total
     const glow = Math.min(420, 160 + Math.log10(S.total+1)*45);
     el.glow.style.setProperty("--glow", glow + "px");
     el.arena.classList.toggle("gold", S.total >= 100000);
-    el.shades.classList.toggle("on", own("oculos") > 0);
 
     // movimento atual e o próximo a liberar
     const n = nivelAtual(), prox = NIVEIS[n+1];
     el.nivelInfo.innerHTML = "Movimento: <b>" + NIVEIS[n].nome + "</b>" +
       (prox ? " <span>· próximo: " + prox.nome + " com " + fmt(prox.aura) + " de aura</span>"
             : " <span>· todos liberados!</span>");
+    el.stage.dataset.nivel = n;
 
     for(const k in estiloBtns) estiloBtns[k].classList.toggle("ativo", k === S.estilo);
 
+    // efeitos dourados ativos
+    const agora = Date.now();
+    el.buffs.innerHTML = buffs.map(b=>{
+      const s = (b.fim - agora)/1000;
+      return `<span class="buff">${b.nome} <small>${b.desc} · ${Math.ceil(s)} s</small><i style="width:${s/b.dur*100}%"></i></span>`;
+    }).join("");
+
+    // melhorias: as ainda não descobertas ficam escondidas; só a próxima aparece como "???"
+    let misterio = false;
     UPGRADES.forEach(u=>{
       const b = shopBtns[u.id], c = cost(u);
-      b.querySelector(".n").textContent = u.name;
+      const visivel = own(u.id) > 0 || S.total >= u.base*0.3 || u === UPGRADES[0];
+      if(!visivel && misterio){ b.style.display = "none"; return; }
+      b.style.display = "";
+      b.classList.toggle("misterio", !visivel);
       b.querySelector(".c").textContent = fmt(c);
-      b.querySelector(".d").textContent = u.desc;
+      b.disabled = !visivel || S.aura < c;
+      if(!visivel){
+        misterio = true;
+        b.querySelector(".n").textContent = "❓ ???";
+        b.querySelector(".d").textContent = "Continue farmando para descobrir";
+        b.querySelector(".q").textContent = "";
+        return;
+      }
+      const unid = u.type === "click" ? "por clique" : "aura/s";
+      b.querySelector(".n").textContent = u.name;
+      b.querySelector(".d").textContent = "+" + fmt(u.val*multGerador(u)) + " " + unid + " cada" +
+        (own(u.id) ? " · total " + fmt(producao(u)) : "");
       b.querySelector(".q").textContent = own(u.id) ? "x" + own(u.id) : "";
-      b.disabled = S.aura < c;
     });
+
+    renderPoderes();
+    renderAcessorios();
+    renderOrbita();
+  }
+
+  // as listas abaixo só são remontadas quando mudam (a "chave" muda)
+  let poderKey = null, poderBtns = [];
+  function renderPoderes(){
+    const todos = PODERES.filter(p => !tem(p.id) && p.req()).sort((a,b)=>a.preco - b.preco);
+    const disp = todos.slice(0, PODER_VISIVEIS);
+    const key = disp.map(p=>p.id).join() + "|" + todos.length;
+    if(key !== poderKey){
+      poderKey = key;
+      el.poderList.innerHTML = "";
+      poderBtns = disp.map(p=>{
+        const b = document.createElement("button");
+        b.className = "up poder";
+        b.innerHTML = `<span class="n">${p.name}</span><span class="c">${fmt(p.preco)}</span><span class="d">${p.desc}</span>`;
+        b.addEventListener("click", ()=>comprarPoder(p));
+        el.poderList.appendChild(b);
+        return {b, p};
+      });
+      const resto = todos.length - disp.length;
+      el.poderVazio.textContent = !todos.length ? "Compre melhorias para liberar poderes."
+        : resto ? "+" + resto + (resto > 1 ? " poderes mais caros esperando" : " poder mais caro esperando") : "";
+      el.poderVazio.style.display = el.poderVazio.textContent ? "" : "none";
+    }
+    poderBtns.forEach(({b, p}) => b.disabled = S.aura < p.preco);
+  }
+
+  let accKey = null;
+  function renderAcessorios(){
+    const key = ACESSORIOS.map(a => (own(a.req) > 0 ? 1 : 0) + (S.ocultos.includes(a.id) ? 2 : 0)).join();
+    if(key === accKey) return;
+    accKey = key;
+    el.acess.innerHTML = "";
+    ACESSORIOS.forEach(a=>{
+      const livre = own(a.req) > 0, on = accOn(a.id);
+      el.arena.classList.toggle("tem-" + a.id, on);
+      const u = UPGRADES.find(x => x.id === a.req);
+      const b = document.createElement("button");
+      b.className = "acc-item" + (on ? " on" : "");
+      b.disabled = !livre;
+      b.innerHTML = `<span>${livre ? a.nome : "🔒 " + semEmojiTxt(a.nome)}</span><small>${
+        livre ? (on ? "usando · toque para tirar" : "guardado · toque para usar") : "compre " + u.name}</small>`;
+      b.addEventListener("click", ()=>{
+        const i = S.ocultos.indexOf(a.id);
+        if(i < 0) S.ocultos.push(a.id); else S.ocultos.splice(i, 1);
+        save(); renderAcessorios();
+      });
+      el.acess.appendChild(b);
+    });
+  }
+  const semEmojiTxt = t => t.slice(t.indexOf(" ") + 1);
+
+  let orbKey = null;
+  function renderOrbita(){
+    // um ícone a cada ORBITA.cada unidades de cada melhoria
+    let lista = [];
+    UPGRADES.forEach(u=>{
+      const n = Math.min(ORBITA.porMelhoria, Math.ceil(own(u.id)/ORBITA.cada));
+      for(let i = 0; i < n; i++) lista.push(emoji(u));
+    });
+    lista = lista.slice(-ORBITA.max);
+    const key = lista.join();
+    if(key === orbKey) return;
+    orbKey = key;
+    el.orbita.innerHTML = lista.map((e, i) =>
+      `<span style="transform:rotate(${i*360/lista.length}deg) translate(${ORBITA.raio}px)">${e}</span>`).join("");
+  }
+
+  /* ---------- render lento (a cada meio segundo e ao trocar de aba) ---------- */
+  let conqKey = null;
+  function renderLento(){
+    checarConquistas();
+    const nc = S.conquistas.length;
+    el.conqCount.textContent = nc;
+    if(conqKey !== nc){
+      conqKey = nc;
+      el.conqInfo.textContent = nc + " de " + CONQUISTAS.length + " · bônus de +" + Math.round(nc*CONQ_BONUS*100) + "% de aura";
+      el.conqList.innerHTML = "";
+      CONQUISTAS.forEach(c=>{
+        const feita = S.conquistas.includes(c.id);
+        const b = document.createElement("button");
+        b.className = "conq" + (feita ? " feita" : "");
+        b.textContent = feita ? c.ic : "🔒";
+        b.title = feita ? c.nome : "???";
+        b.addEventListener("click", ()=>{
+          el.conqDetalhe.innerHTML = (feita ? "<b>" + c.ic + " " + c.nome + "</b>" : "<b>🔒 ???</b>") + " · " + c.desc;
+        });
+        el.conqList.appendChild(b);
+      });
+    }
+    if(aba === "status"){
+      const linhas = [
+        ["Aura agora", fmt(S.aura)],
+        ["Aura total farmada", fmt(S.total)],
+        ["Aura por segundo", fmt(perSec())],
+        ["Aura por clique", fmt(perClick())],
+        ["Cliques", fmt(S.stats.cliques)],
+        ["Aura vinda de cliques", fmt(S.stats.auraClique)],
+        ["Giros da Aura", fmt(S.stats.giros)],
+        ["Auras Douradas pegas", fmt(S.stats.douradas)],
+        ["Maior combo", "x" + S.stats.maxMult],
+        ["Melhorias compradas", fmt(UPGRADES.reduce((a,u)=>a+own(u.id), 0))],
+        ["Poderes", S.poderes.length + " de " + PODERES.length],
+        ["Conquistas", nc + " de " + CONQUISTAS.length],
+        ["Contando desde", new Date(S.stats.inicio).toLocaleDateString("pt-BR")]
+      ];
+      el.stats.innerHTML = linhas.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+    }
   }
 
   /* ---------- loop ---------- */
-  let last = performance.now(), saveT = 0;
+  let last = performance.now(), saveT = 0, lentoT = 0;
   function tick(now){
     const dt = Math.min(0.25, (now-last)/1000); last = now;
+    const agora = Date.now();
+    buffs = buffs.filter(b => b.fim > agora);
 
     const gain = perSec()*dt;
-    if(gain){ S.aura += gain; S.total += gain; }
+    if(gain) ganhar(gain);
 
     // combo cai com o tempo
-    combo = Math.max(0, combo - dt*4);
+    combo = Math.max(0, Math.min(comboMax(), combo - dt*4));
 
     // liberou um movimento novo?
     const n = nivelAtual();
     if(n > S.nivel){
       S.nivel = n;
-      popup("✨ Novo movimento: " + NIVEIS[n].nome, 40, 60, true);
+      popup("✨ Novo movimento: " + NIVEIS[n].nome, 40, 60, "grande");
       save();
     }
 
-    // recarga do giro
-    const left = Math.max(0, S.spinReadyAt - Date.now());
-    el.spinBtn.disabled = left > 0;
-    el.cd.style.width = (left/SPIN_CD*100) + "%";
+    // Aura Dourada: aparece, pisca no fim e some
+    if(!dourada && agora >= proxDourada) mostrarDourada();
+    else if(dourada){
+      dourada.classList.toggle("sumindo", dourada.fim - agora < 3000);
+      if(agora > dourada.fim) sumirDourada();
+    }
 
+    // efeitos dos acessórios
+    if(accOn("notas") && Math.random() < dt*.7)
+      popup(Math.random() < .5 ? "♪" : "♫", 30 + Math.random()*200, 80 + Math.random()*120, "nota");
+    if(accOn("flash") && Math.random() < dt*.12) animar(el.arena, "flash");
+
+    // recarga do giro
+    const left = Math.max(0, S.spinReadyAt - agora);
+    el.spinBtn.disabled = left > 0;
+    el.cd.style.width = (left/spinCD()*100) + "%";
+
+    desenharCeu(dt, now);
     saveT += dt; if(saveT > 5){ saveT = 0; save(); }
+    lentoT += dt; if(lentoT > .5){ lentoT = 0; renderLento(); }
     render();
     requestAnimationFrame(tick);
   }
@@ -488,13 +962,16 @@
   /* ---------- início ---------- */
   load();
   montarBoneco(S.estilo);
-  // ganho enquanto estava fora (até 1h, a 50%)
-  const away = Math.min(3600, (Date.now() - (S.saved||Date.now()))/1000);
+  agendarDourada();
+  // ganho enquanto estava fora (até OFFLINE_MAX, a OFFLINE_PCT)
+  const away = Math.min(OFFLINE_MAX, (Date.now() - (S.saved||Date.now()))/1000);
   if(away > 30 && perSec() > 0){
-    const g = perSec()*away*0.5;
-    S.aura += g; S.total += g;
+    const g = perSec()*away*OFFLINE_PCT;
+    ganhar(g);
+    toast("🌙", "Enquanto você estava fora", "+" + fmt(g) + " de aura");
   }
   render();
+  renderLento();
   requestAnimationFrame(tick);
   window.addEventListener("beforeunload", save);
 })();
