@@ -1,0 +1,91 @@
+:root{
+  --bg1:#0e0b1f; --bg2:#1d1442; --card:#1a1535; --card2:#241c4a;
+  --txt:#f3efff; --mut:#a79ecb; --aura:#b388ff; --gold:#ffd54f; --ok:#69f0ae;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  background:radial-gradient(ellipse at 30% 0%,var(--bg2),var(--bg1) 70%);
+  color:var(--txt);font-family:system-ui,Segoe UI,Roboto,sans-serif;
+  user-select:none;-webkit-user-select:none;overflow-x:hidden;
+}
+.app{display:grid;grid-template-columns:1fr 340px;gap:16px;max-width:980px;margin:0 auto;padding:16px;min-height:100%}
+@media(max-width:760px){.app{grid-template-columns:1fr}}
+
+/* ---------- palco ---------- */
+.stage{background:var(--card);border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden}
+h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color:var(--mut)}
+.score{font-size:clamp(2.2rem,8vw,3.4rem);font-weight:800;color:var(--aura);text-shadow:0 0 24px var(--aura);margin-top:6px;line-height:1}
+.rate{color:var(--mut);margin:6px 0 0;font-size:.95rem}
+.rate b{color:var(--txt)}
+
+.arena{position:relative;width:260px;height:320px;margin:10px 0;cursor:pointer;touch-action:manipulation}
+.glow{
+  position:absolute;left:50%;top:48%;width:var(--glow,160px);height:var(--glow,160px);
+  transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(179,136,255,.85),rgba(179,136,255,0) 68%);
+  animation:pulse 2.2s ease-in-out infinite;transition:width .5s,height .5s;
+}
+.gold .glow{background:radial-gradient(circle,rgba(255,213,79,.9),rgba(255,213,79,0) 68%)}
+@keyframes pulse{50%{opacity:.55;transform:translate(-50%,-50%) scale(1.08)}}
+
+.char{position:absolute;left:50%;top:30px;width:0;height:0;transition:transform .08s}
+.char.spin{animation:spin .9s cubic-bezier(.3,.7,.3,1)}
+@keyframes spin{
+  0%{transform:translateY(0) rotateY(0)}
+  40%{transform:translateY(-60px) rotateY(540deg)}
+  100%{transform:translateY(0) rotateY(1080deg)}
+}
+
+/* ---------- boneco (SVG montado pelo JS) ---------- */
+.char svg{position:absolute;left:-100px;top:-14px;overflow:visible}
+/* articulações: o JS gira cada uma; o ponto de giro (transform-origin) vem do estilo */
+.junta{transition:transform .14s ease-out}
+.shades{display:none}
+.shades.on{display:inline}
+/* mão: normal parada; aberta só quando o movimento já foi liberado e o boneco está farmando */
+.mao-aberta{display:none}
+.abrir .mao-aberta{display:inline}
+.abrir .mao-normal{display:none}
+/* piscar os olhos */
+.olhos{transform-box:fill-box;transform-origin:center;animation:piscar 4s infinite}
+@keyframes piscar{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+/* respirar: o boneco todo (menos as pernas) sobe um pouquinho */
+.respira{animation:respira 2.4s ease-in-out infinite}
+@keyframes respira{50%{transform:translateY(-3px)}}
+
+.pop{position:absolute;pointer-events:none;font-weight:800;color:var(--gold);text-shadow:0 2px 6px #000;
+     animation:pop .9s ease-out forwards;white-space:nowrap}
+@keyframes pop{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-70px)}}
+
+.combo{width:100%;max-width:300px}
+.combo .lbl{display:flex;justify-content:space-between;font-size:.85rem;color:var(--mut);margin-bottom:4px}
+.bar{height:10px;background:#0006;border-radius:99px;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--aura),var(--gold));transition:width .1s}
+
+.btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+button{font:inherit;color:var(--txt);border:0;cursor:pointer}
+.spinbtn{background:var(--aura);color:#12082e;font-weight:800;padding:12px 18px;border-radius:12px;position:relative;overflow:hidden;min-width:190px}
+.spinbtn[disabled]{opacity:.55;cursor:not-allowed}
+.spinbtn .cd{position:absolute;left:0;bottom:0;height:4px;background:#12082e88;width:0}
+.hint{font-size:.78rem;color:var(--mut);margin-top:10px;text-align:center}
+.nivel{font-size:.85rem;color:var(--txt);margin:6px 0 0;text-align:center}
+.nivel span{color:var(--mut)}
+
+/* ---------- loja ---------- */
+.shop{background:var(--card);border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.shop h2{margin:0 0 4px;font-size:1rem;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
+.estilos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px}
+.est{background:var(--card2);padding:8px 4px;border-radius:10px;border:2px solid transparent;font-size:.8rem}
+.est:hover{border-color:#b388ff55}
+.est.ativo{border-color:var(--aura)}
+.up{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;background:var(--card2);padding:10px 12px;border-radius:12px;border:2px solid transparent}
+.up:disabled{opacity:.45;cursor:not-allowed}
+.up:not(:disabled){border-color:#b388ff55}
+.up:not(:disabled):hover{border-color:var(--aura)}
+.up .n{font-weight:700}
+.up .c{color:var(--gold);font-weight:700;text-align:right}
+.up .d{grid-column:1/2;font-size:.8rem;color:var(--mut)}
+.up .q{grid-column:2/3;text-align:right;font-size:.8rem;color:var(--ok)}
+.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:var(--mut)}
+.foot button{background:none;color:var(--mut);text-decoration:underline;font-size:.75rem}
