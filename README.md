@@ -28,8 +28,11 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
 
 ## Estado atual (v4)
 
-- O jogo está em três arquivos: `index.html` (estrutura), `style.css` (visual)
-  e `game.js` (lógica).
+- O jogo está em quatro arquivos: `index.html` (estrutura), `style.css` (visual),
+  `icones.js` (ícones em SVG desenhados para o jogo) e `game.js` (lógica).
+- A interface não usa emojis: melhorias, poderes, mascotes, conquistas (com moldura
+  bronze/prata/ouro/diamante/arco-íris), abas e avisos usam os ícones de `icones.js`.
+  O editor mostra miniaturas de verdade dos corpos, rostos e chapéus.
 - O boneco é desenhado em SVG pelo `game.js` (braços, mãos, cabelo, acessórios),
   com animações de piscar, respirar e "pulinho" a cada clique.
 - Fundo animado em canvas: estrelas, estrelas cadentes e partículas de aura

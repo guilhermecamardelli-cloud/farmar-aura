@@ -68,7 +68,7 @@ h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color
 
 /* ícones das melhorias girando em volta do boneco */
 .orbita{position:absolute;left:50%;top:48%;width:0;height:0;pointer-events:none;animation:gira 36s linear infinite}
-.orbita span{position:absolute;left:-9px;top:-10px;font-size:16px;line-height:20px;filter:drop-shadow(0 0 4px #b388ff)}
+.orbita span{position:absolute;left:-11px;top:-11px;width:22px;height:22px;filter:drop-shadow(0 0 4px #b388ff)}
 
 /* flash de câmera (Ensaio fotográfico) */
 .arena::before{content:"";position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,#fff,transparent 65%);
@@ -191,8 +191,16 @@ button{font:inherit;color:var(--txt);border:0;cursor:pointer}
 .acc-item:disabled{opacity:.45;cursor:not-allowed}
 
 .conqs{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px}
-.conq{aspect-ratio:1;background:#0004;border-radius:10px;font-size:1.25rem;border:2px solid transparent;filter:grayscale(1);opacity:.5}
-.conq.feita{background:var(--card2);border-color:#ffd54f66;filter:none;opacity:1}
+.conq{aspect-ratio:1;background:#0004;border-radius:10px;border:2px solid transparent;filter:grayscale(1);opacity:.5;display:grid;place-items:center;padding:0}
+.conq.feita{background:var(--card2);border-color:#ffd54f;filter:none;opacity:1}
+.conq .ic{width:72%;height:72%;margin:0}
+/* moldura da conquista pelo nível */
+.conq[data-tier="0"]{border-color:#cd7f32;background:radial-gradient(circle,#cd7f3233,var(--card2) 70%)}
+.conq[data-tier="1"]{border-color:#c0c7d6;background:radial-gradient(circle,#c0c7d633,var(--card2) 70%)}
+.conq[data-tier="2"]{border-color:#ffd54f;background:radial-gradient(circle,#ffd54f33,var(--card2) 70%)}
+.conq[data-tier="3"]{border-color:#7fd8ff;background:radial-gradient(circle,#7fd8ff40,var(--card2) 70%)}
+.conq[data-tier="4"]{border-color:#ff6fb5;background:radial-gradient(circle,#ff6fb544,var(--card2) 70%);animation:arcoiris 4s linear infinite}
+.conq[data-tier="s"]{border-color:#b388ff;background:radial-gradient(circle,#b388ff44,var(--card2) 70%)}
 
 .stats{display:grid;grid-template-columns:1fr auto;gap:6px 10px;margin:0;font-size:.85rem}
 .stats dt{color:var(--mut)}
@@ -210,7 +218,7 @@ textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px
         z-index:20;pointer-events:none;width:min(340px,calc(100% - 32px))}
 .toast{display:flex;gap:10px;align-items:center;background:#241c4aee;border:1px solid #ffd54f66;border-radius:14px;
        padding:10px 14px;box-shadow:0 8px 30px #0008;animation:entra .3s ease-out;transition:opacity .4s,transform .4s}
-.toast .ic{font-size:1.6rem}
+.toast .tic .ic{width:34px;height:34px;margin:0}
 .toast b{display:block;font-size:.9rem}
 .toast small{color:var(--mut);font-size:.8rem}
 .toast.sai{opacity:0;transform:translateY(10px)}
@@ -231,7 +239,7 @@ textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px
 /* mascotes sentados ao lado do boneco */
 .mascotes{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:space-between;padding:0 4px;pointer-events:none;z-index:2}
 .mascotes div{display:flex;gap:2px}
-.mascotes span{font-size:28px;filter:drop-shadow(0 3px 3px #0008);animation:pulinho 1.6s ease-in-out infinite}
+.mascotes span{width:34px;height:34px;filter:drop-shadow(0 3px 3px #0008);animation:pulinho 1.6s ease-in-out infinite}
 @keyframes pulinho{50%{transform:translateY(-5px)}}
 
 /* caixa do Brilho na aba de conquistas */
@@ -239,3 +247,22 @@ textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px
 .brilho small{display:block;color:var(--mut);font-size:.78rem;margin-top:2px}
 .brilho i{position:absolute;left:0;bottom:0;height:4px}
 .conq.secreta:not(.feita){border-style:dashed;border-color:#ffffff22}
+
+/* ---------- ícones (icones.js) ---------- */
+.ic{width:1.3em;height:1.3em;vertical-align:-.32em;margin-right:.35em;flex:none;overflow:visible}
+.orbita .ic,.mascotes .ic{width:100%;height:100%;margin:0}
+.up .n{display:flex;align-items:center}
+.up .n .ic{width:28px;height:28px;margin-right:8px}
+.abas button .ic{width:20px;height:20px;margin-right:4px}
+.buff .ic{width:1.15em;height:1.15em}
+.acc-item>span{display:flex;align-items:center}
+.acc-item .ic{width:24px;height:24px}
+.brilho b .ic{width:1.2em;height:1.2em}
+#mascotesInfo .ic{width:20px;height:20px;margin-right:1px}
+.detalhe .ic{width:1.4em;height:1.4em}
+.hint b .ic{width:1.2em;height:1.2em}
+/* opções do editor com miniatura em cima do nome */
+.forma{display:flex;flex-direction:column;align-items:center;gap:3px}
+.forma .mini{height:46px;width:auto;max-width:72px;overflow:visible}
+.forma .ic{width:28px;height:28px;margin:9px 0}
+.cor .ic{width:16px;height:16px;margin:0}

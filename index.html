@@ -40,18 +40,18 @@
     <p class="nivel" id="nivelInfo"></p>
 
     <div class="btns">
-      <button class="spinbtn" id="spinBtn">🌀 Giro da Aura (espaço)<span class="cd" id="cd"></span></button>
+      <button class="spinbtn" id="spinBtn" data-ic="giro">Giro da Aura (espaço)<span class="cd" id="cd"></span></button>
     </div>
     <p class="hint">Clique no boneco, ou use <b>A / D</b> e as <b>setas</b>. O giro dá aura extra.
-      Fique de olho na <b>Aura Dourada</b> ✨</p>
+      Fique de olho na <b data-ic="dourada">Aura Dourada</b></p>
   </main>
 
   <aside class="shop">
     <nav class="abas" id="abas">
-      <button data-aba="loja" class="ativo">🛒 Loja</button>
-      <button data-aba="boneco">🎨 Boneco</button>
-      <button data-aba="conquistas">🏆 <span id="conqCount">0</span></button>
-      <button data-aba="status">📊 Status</button>
+      <button data-aba="loja" data-ic="loja" class="ativo">Loja</button>
+      <button data-aba="boneco" data-ic="paleta">Boneco</button>
+      <button data-aba="conquistas" data-ic="trofeu"><span id="conqCount">0</span></button>
+      <button data-aba="status" data-ic="grafico">Status</button>
     </nav>
 
     <section class="painel ativo" id="aba-loja">
@@ -69,7 +69,7 @@
         <input id="nomeBoneco" maxlength="16" placeholder="Dê um nome ao seu boneco" autocomplete="off">
       </label>
       <div class="savebox">
-        <button id="aleatorio">🎲 Aleatório</button>
+        <button id="aleatorio" data-ic="dado">Aleatório</button>
         <button id="padrao">↺ Voltar ao padrão</button>
       </div>
       <div class="editor" id="editor"></div>
@@ -91,8 +91,8 @@
       <dl class="stats" id="stats"></dl>
       <h2>Save</h2>
       <div class="savebox">
-        <button id="exportar">📤 Exportar</button>
-        <button id="importar">📥 Importar</button>
+        <button id="exportar" data-ic="exportar">Exportar</button>
+        <button id="importar" data-ic="importar">Importar</button>
       </div>
       <textarea id="saveTxt" rows="3" placeholder="Exporte para copiar o save, ou cole aqui um save e toque em Importar"></textarea>
       <div class="foot"><span>Salvo automaticamente</span><button id="reset">Recomeçar</button></div>
@@ -101,6 +101,7 @@
 </div>
 <div class="toasts" id="toasts"></div>
 
+<script src="icones.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
