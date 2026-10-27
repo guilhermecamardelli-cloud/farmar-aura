@@ -11,8 +11,19 @@ body{
 }
 /* céu animado atrás de tudo (desenhado pelo JS) */
 #ceu{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
-.app{display:grid;grid-template-columns:1fr 360px;gap:16px;max-width:1000px;margin:0 auto;padding:16px;min-height:100%;align-items:start}
-@media(max-width:760px){.app{grid-template-columns:1fr}}
+/* 3 colunas como o Cookie Clicker: palco | centro (vitrine e menus) | loja.
+   No computador a tela não rola: cada coluna rola sozinha. No celular as colunas empilham. */
+.app{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr) minmax(290px,340px);gap:12px;
+     max-width:1500px;margin:0 auto;padding:12px;height:100vh;height:100dvh}
+.stage,.centro,.loja{min-height:0}
+.centro,.loja{overflow-y:auto;scrollbar-width:thin;scrollbar-color:#b388ff55 transparent}
+.stage{justify-content:center}
+@media(max-width:999px){
+  .app{grid-template-columns:1fr;height:auto;max-width:640px}
+  .loja{order:2}
+  .centro{order:3}
+  .centro,.loja{overflow:visible}
+}
 
 /* ---------- palco ---------- */
 /* a luz e o chão do palco mudam de cor a cada movimento liberado */
@@ -138,14 +149,15 @@ button{font:inherit;color:var(--txt);border:0;cursor:pointer}
 .nivel span{color:var(--mut)}
 
 /* ---------- painel lateral com abas ---------- */
-.shop{background:var(--card);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid #ffffff10;
+.centro,.loja{background:var(--card);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid #ffffff10;
       border-radius:20px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
+.paineis{display:flex;flex-direction:column}
 .abas{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#0004;padding:4px;border-radius:12px}
 .abas button{background:none;color:var(--mut);padding:8px 2px;border-radius:9px;font-size:.82rem;font-weight:600}
 .abas button.ativo{background:var(--card2);color:var(--txt)}
 .painel{display:none;flex-direction:column;gap:8px}
 .painel.ativo{display:flex}
-.shop h2{margin:6px 0 0;font-size:.9rem;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
+.centro h2,.loja h2{margin:6px 0 0;font-size:.9rem;color:var(--mut);letter-spacing:.1em;text-transform:uppercase}
 .lista{display:flex;flex-direction:column;gap:8px}
 .vazio,.sub,.detalhe{margin:0;font-size:.8rem;color:var(--mut)}
 .detalhe{background:#0003;border-radius:10px;padding:8px 10px;min-height:2.6em}
@@ -266,3 +278,40 @@ textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px
 .forma .mini{height:46px;width:auto;max-width:72px;overflow:visible}
 .forma .ic{width:28px;height:28px;margin:9px 0}
 .cor .ic{width:16px;height:16px;margin:0}
+
+/* ---------- centro: vitrine ---------- */
+.vitrine{display:flex;flex-direction:column;gap:6px}
+/* cada melhoria comprada vira uma fileira com seus ícones trabalhando */
+.fileira{--h:260;position:relative;height:66px;border-radius:12px;overflow:hidden;border:1px solid #ffffff18;
+  background:linear-gradient(hsl(var(--h) 45% 30%),hsl(var(--h) 50% 16%))}
+.fileira::before{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;background:hsl(var(--h) 40% 10% / .7)}
+.fileira b{position:absolute;right:6px;top:5px;z-index:2;font-size:.75rem;background:#000a;padding:2px 8px;border-radius:99px}
+.fileira b small{color:var(--ok)}
+.fileira span{position:absolute;width:24px;height:24px;animation:trabalha 1.4s ease-in-out infinite;filter:drop-shadow(0 2px 2px #0008)}
+.fileira .ic{width:100%;height:100%;margin:0}
+@keyframes trabalha{50%{transform:translateY(-4px) rotate(-6deg)}}
+
+/* ---------- loja ---------- */
+.loja h2 .ic{width:1.3em;height:1.3em}
+/* poderes em grade de ícones; os caros ficam apagados */
+.poderes{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:5px}
+.poder{position:relative;aspect-ratio:1;padding:5px;border-radius:9px;background:linear-gradient(135deg,#3a2a12,var(--card2));
+  border:2px solid #ffd54f88;display:grid;place-items:center}
+.poder:hover{border-color:var(--gold)}
+.poder.caro{opacity:.4;border-color:#ffffff22}
+.poder .ic{width:100%;height:100%;margin:0}
+.poder i{position:absolute;right:3px;bottom:3px;width:8px;height:8px;border-radius:50%;border:1px solid #000}
+.poder i.t0{background:#cd7f32}.poder i.t1{background:#c0c7d6}.poder i.t2{background:#ffd54f}.poder i.t3{background:#7fd8ff}
+/* altura fixa: aparecer ou sumir a info não mexe na lista de baixo */
+.poderInfo{display:grid;grid-template-columns:1fr auto;align-content:start;gap:2px 8px;height:84px;overflow:hidden;
+  background:#0005;border:1px solid #ffffff14;border-radius:10px;padding:8px 10px;font-size:.85rem}
+.poderInfo.ativo{border-color:#ffd54f55}
+.poderInfo b{display:flex;align-items:center}
+.poderInfo .c{color:var(--gold);font-weight:700}
+.poderInfo small{grid-column:1/-1;color:var(--mut)}
+.poderInfo .dica{color:var(--aura)}
+/* comprar 1 / 10 / 100 */
+.qtd{display:flex;align-items:center;gap:4px;font-size:.8rem;color:var(--mut);margin-top:4px}
+.qtd span{margin-right:auto;text-transform:uppercase;letter-spacing:.08em}
+.qtd button{background:#0004;padding:4px 12px;border-radius:8px;font-weight:700;color:var(--mut)}
+.qtd button.ativo{background:var(--aura);color:#12082e}

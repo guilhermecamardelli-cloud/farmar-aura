@@ -46,57 +46,66 @@
       Fique de olho na <b data-ic="dourada">Aura Dourada</b></p>
   </main>
 
-  <aside class="shop">
+  <!-- centro: vitrine das melhorias, notícias e menus (como o meio do Cookie Clicker) -->
+  <section class="centro">
     <nav class="abas" id="abas">
-      <button data-aba="loja" data-ic="loja" class="ativo">Loja</button>
+      <button data-aba="vitrine" data-ic="aura" class="ativo">Vitrine</button>
       <button data-aba="boneco" data-ic="paleta">Boneco</button>
       <button data-aba="conquistas" data-ic="trofeu"><span id="conqCount">0</span></button>
       <button data-aba="status" data-ic="grafico">Status</button>
     </nav>
+    <div class="paineis">
+      <section class="painel ativo" id="aba-vitrine">
+        <div class="vitrine" id="vitrine"></div>
+        <p class="vazio" id="vitrineVazia">Compre melhorias na loja: cada uma aparece aqui trabalhando para você.</p>
+      </section>
 
-    <section class="painel ativo" id="aba-loja">
-      <h2>Poderes</h2>
-      <div class="lista" id="poderList"></div>
-      <p class="vazio" id="poderVazio">Compre melhorias para liberar poderes.</p>
-      <h2>Melhorias</h2>
-      <div class="lista" id="shopList"></div>
-    </section>
+      <section class="painel" id="aba-boneco">
+        <h2>Monte seu boneco</h2>
+        <div class="preview" id="preview"></div>
+        <label class="nome">Nome
+          <input id="nomeBoneco" maxlength="16" placeholder="Dê um nome ao seu boneco" autocomplete="off">
+        </label>
+        <div class="savebox">
+          <button id="aleatorio" data-ic="dado">Aleatório</button>
+          <button id="padrao">↺ Voltar ao padrão</button>
+        </div>
+        <div class="editor" id="editor"></div>
+        <h2>Acessórios</h2>
+        <div class="lista" id="acessorios"></div>
+      </section>
 
-    <section class="painel" id="aba-boneco">
-      <h2>Monte seu boneco</h2>
-      <div class="preview" id="preview"></div>
-      <label class="nome">Nome
-        <input id="nomeBoneco" maxlength="16" placeholder="Dê um nome ao seu boneco" autocomplete="off">
-      </label>
-      <div class="savebox">
-        <button id="aleatorio" data-ic="dado">Aleatório</button>
-        <button id="padrao">↺ Voltar ao padrão</button>
-      </div>
-      <div class="editor" id="editor"></div>
-      <h2>Acessórios</h2>
-      <div class="lista" id="acessorios"></div>
-    </section>
+      <section class="painel" id="aba-conquistas">
+        <h2>Conquistas</h2>
+        <div class="brilho" id="brilhoInfo"></div>
+        <p class="sub" id="mascotesInfo"></p>
+        <p class="sub" id="conqInfo"></p>
+        <div class="conqs" id="conqList"></div>
+        <p class="detalhe" id="conqDetalhe">Toque numa conquista para ver o que pede.</p>
+      </section>
 
-    <section class="painel" id="aba-conquistas">
-      <h2>Conquistas</h2>
-      <div class="brilho" id="brilhoInfo"></div>
-      <p class="sub" id="mascotesInfo"></p>
-      <p class="sub" id="conqInfo"></p>
-      <div class="conqs" id="conqList"></div>
-      <p class="detalhe" id="conqDetalhe">Toque numa conquista para ver o que pede.</p>
-    </section>
+      <section class="painel" id="aba-status">
+        <h2>Estatísticas</h2>
+        <dl class="stats" id="stats"></dl>
+        <h2>Save</h2>
+        <div class="savebox">
+          <button id="exportar" data-ic="exportar">Exportar</button>
+          <button id="importar" data-ic="importar">Importar</button>
+        </div>
+        <textarea id="saveTxt" rows="3" placeholder="Exporte para copiar o save, ou cole aqui um save e toque em Importar"></textarea>
+        <div class="foot"><span>Salvo automaticamente</span><button id="reset">Recomeçar</button></div>
+      </section>
+    </div>
+  </section>
 
-    <section class="painel" id="aba-status">
-      <h2>Estatísticas</h2>
-      <dl class="stats" id="stats"></dl>
-      <h2>Save</h2>
-      <div class="savebox">
-        <button id="exportar" data-ic="exportar">Exportar</button>
-        <button id="importar" data-ic="importar">Importar</button>
-      </div>
-      <textarea id="saveTxt" rows="3" placeholder="Exporte para copiar o save, ou cole aqui um save e toque em Importar"></textarea>
-      <div class="foot"><span>Salvo automaticamente</span><button id="reset">Recomeçar</button></div>
-    </section>
+  <!-- direita: loja -->
+  <aside class="loja">
+    <h2 data-ic="loja">Loja</h2>
+    <div class="poderes" id="poderList"></div>
+    <div class="poderInfo" id="poderInfo"></div>
+    <p class="vazio" id="poderVazio">Compre melhorias para liberar poderes.</p>
+    <div class="qtd" id="qtdCompra"></div>
+    <div class="lista" id="shopList"></div>
   </aside>
 </div>
 <div class="toasts" id="toasts"></div>

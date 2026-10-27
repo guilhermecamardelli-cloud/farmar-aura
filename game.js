@@ -84,7 +84,7 @@
     id: u.id + "-" + i,
     name: u.name + " · " + t.nome,
     desc: u.name + (u.type === "click" ? ": dobro por clique" : ": dobro de aura/s"),
-    ic:u.id, efeito:"gerador", alvo:u.id, preco:u.base * t.x,
+    ic:u.id, efeito:"gerador", alvo:u.id, tier:i, preco:u.base * t.x,
     req: () => own(u.id) >= t.qtd
   }))).concat(PODERES_EXTRA);
 
@@ -104,7 +104,8 @@
   /* ---------- visual ---------- */
   const CEU = {taxaMin:3, porDecada:6, taxaMax:45};       // partículas por segundo no fundo
   const ORBITA = {cada:5, porMelhoria:4, max:32, raio:128}; // ícones girando em volta do boneco
-  const PODER_VISIVEIS = 4;    // a loja mostra só os poderes mais baratos
+  const QTD_COMPRA = [1, 10, 100];                         // botões "comprar 1 / 10 / 100" da loja
+  const VITRINE = {max:40, porLinha:20, passoCor:29};       // fileiras do centro: ícones por fileira e cor
 
   // acessórios aparecem no boneco quando você tem a melhoria "req"
   const ACESSORIOS = [
@@ -544,7 +545,8 @@
   let combo = 0;                       // 0..comboMax()
   const own = id => S.owned[id] || 0;
   const tem = id => S.poderes.includes(id);
-  const cost = u => Math.floor(u.base * Math.pow(GROWTH, own(u.id)));
+  // custo de comprar n de uma vez (soma da progressão de preços)
+  const custoN = (u, n) => Math.floor(u.base * Math.pow(GROWTH, own(u.id)) * (Math.pow(GROWTH, n) - 1) / (GROWTH - 1));
   const ativos = efeito => PODERES.filter(p => p.efeito === efeito && tem(p.id));
   const fator = efeito => ativos(efeito).reduce((a,p)=>a*p.val, 1);
   const multGerador = u => Math.pow(2, ativos("gerador").filter(p => p.alvo === u.id).length);
@@ -577,7 +579,8 @@
     arena:$("arena"), char:$("char"), glow:$("glow"), orbita:$("orbita"),
     stage:$("stage"), comboBar:$("comboBar"), mult:$("mult"), nivelInfo:$("nivelInfo"),
     spinBtn:$("spinBtn"), cd:$("cd"), shop:$("shopList"), reset:$("reset"),
-    poderList:$("poderList"), poderVazio:$("poderVazio"), acess:$("acessorios"),
+    poderList:$("poderList"), poderVazio:$("poderVazio"), poderInfo:$("poderInfo"), acess:$("acessorios"),
+    vitrine:$("vitrine"), vitrineVazia:$("vitrineVazia"),
     conqList:$("conqList"), conqInfo:$("conqInfo"), conqDetalhe:$("conqDetalhe"), conqCount:$("conqCount"),
     stats:$("stats"), saveTxt:$("saveTxt"), toasts:$("toasts"),
     editor:$("editor"), preview:$("preview"), nome:$("nomeBoneco"), titulo:$("titulo"),
@@ -683,7 +686,7 @@
   document.querySelectorAll("[data-ic]").forEach(e => e.insertAdjacentHTML("afterbegin", icone(e.dataset.ic)));
 
   /* ---------- abas ---------- */
-  let aba = "loja";
+  let aba = "vitrine";
   document.querySelectorAll("#abas button").forEach(b=>{
     b.addEventListener("click", ()=>{
       aba = b.dataset.aba;
@@ -771,11 +774,21 @@
     el.shop.appendChild(b);
     shopBtns[u.id] = b;
   });
+  // quantidade escolhida nos botões "comprar 1 / 10 / 100"
+  let qtdCompra = QTD_COMPRA[0];
+  const qtdBox = $("qtdCompra");
+  qtdBox.innerHTML = "<span>Comprar</span>" + QTD_COMPRA.map(q => `<button data-q="${q}">${q}</button>`).join("");
+  qtdBox.querySelectorAll("button").forEach(b => b.addEventListener("click", ()=>{
+    qtdCompra = +b.dataset.q;
+    qtdBox.querySelectorAll("button").forEach(x => x.classList.toggle("ativo", x === b));
+    render();
+  }));
+  qtdBox.querySelector("button").classList.add("ativo");
   function buy(u){
-    const c = cost(u);
+    const c = custoN(u, qtdCompra);
     if(S.aura < c) return;
     S.aura -= c;
-    S.owned[u.id] = own(u.id) + 1;
+    S.owned[u.id] = own(u.id) + qtdCompra;
     save(); render();
   }
   function comprarPoder(p){
@@ -783,6 +796,7 @@
     S.aura -= p.preco;
     S.poderes.push(p.id);
     if(p.efeito === "mascote"){ mascoteKey = null; renderBrilho(); }
+    mostrarPoder(null);
     toast(p.ic, p.name, p.desc);
     save(); render();
   }
@@ -1026,7 +1040,7 @@
     // melhorias: as ainda não descobertas ficam escondidas; só a próxima aparece como "???"
     let misterio = false;
     UPGRADES.forEach(u=>{
-      const b = shopBtns[u.id], c = cost(u);
+      const b = shopBtns[u.id], c = custoN(u, qtdCompra);
       const visivel = own(u.id) > 0 || S.total >= u.base*0.3 || u === UPGRADES[0];
       if(!visivel && misterio){ b.style.display = "none"; return; }
       b.style.display = "";
@@ -1049,33 +1063,72 @@
     });
 
     renderPoderes();
+    renderVitrine();
     renderAcessorios();
     renderOrbita();
   }
 
   // as listas abaixo só são remontadas quando mudam (a "chave" muda)
-  let poderKey = null, poderBtns = [];
+  // poderes em grade de ícones (como os upgrades do Cookie Clicker).
+  // passar o mouse mostra o que faz; clicar compra. No toque: o 1º toque mostra, o 2º compra
+  // a caixa de info tem altura fixa (não empurra a lista) e a grade não é remontada
+  // enquanto o botão está apertado, para nenhum clique cair no lugar errado
+  let poderKey = null, poderBtns = [], poderSel = null, ultimoPonteiro = "mouse", apertado = false;
+  window.addEventListener("pointerdown", ()=>{ apertado = true; }, true);
+  window.addEventListener("pointerup", ()=>{ apertado = false; }, true);
+  window.addEventListener("pointercancel", ()=>{ apertado = false; }, true);
+  function mostrarPoder(p){
+    poderSel = p;
+    el.poderInfo.innerHTML = p ? `<b>${icone(p.ic)}${p.name}</b><span class="c">${fmt(p.preco)}</span><small>${p.desc}</small>` +
+      `<small class="dica">${ultimoPonteiro === "touch" ? "Toque de novo para comprar" : "Clique para comprar"}</small>`
+      : `<small>${ultimoPonteiro === "touch" ? "Toque num poder para ver o que ele faz" : "Passe o mouse num poder para ver o que ele faz"}</small>`;
+    el.poderInfo.classList.toggle("ativo", !!p);
+  }
   function renderPoderes(){
     const todos = PODERES.filter(p => !tem(p.id) && p.req()).sort((a,b)=>a.preco - b.preco);
-    const disp = todos.slice(0, PODER_VISIVEIS);
-    const key = disp.map(p=>p.id).join() + "|" + todos.length;
-    if(key !== poderKey){
+    const key = todos.map(p=>p.id).join();
+    if(key !== poderKey && !apertado){
       poderKey = key;
       el.poderList.innerHTML = "";
-      poderBtns = disp.map(p=>{
+      poderBtns = todos.map(p=>{
         const b = document.createElement("button");
-        b.className = "up poder";
-        b.innerHTML = `<span class="n">${icone(p.ic)}${p.name}</span><span class="c">${fmt(p.preco)}</span><span class="d">${p.desc}</span>`;
-        b.addEventListener("click", ()=>comprarPoder(p));
+        b.className = "poder";
+        b.innerHTML = icone(p.ic) + (p.efeito === "gerador" ? `<i class="t${p.tier}"></i>` : "");
+        b.setAttribute("aria-label", p.name);
+        b.addEventListener("pointerenter", e=>{ if(e.pointerType === "mouse") mostrarPoder(p); });
+        b.addEventListener("pointerdown", e=>{ ultimoPonteiro = e.pointerType; });
+        b.addEventListener("click", ()=>{
+          if(ultimoPonteiro === "touch" && poderSel !== p) return mostrarPoder(p);
+          comprarPoder(p);
+        });
         el.poderList.appendChild(b);
         return {b, p};
       });
-      const resto = todos.length - disp.length;
-      el.poderVazio.textContent = !todos.length ? "Compre melhorias para liberar poderes."
-        : resto ? "+" + resto + (resto > 1 ? " poderes mais caros esperando" : " poder mais caro esperando") : "";
-      el.poderVazio.style.display = el.poderVazio.textContent ? "" : "none";
+      if(poderSel && !todos.includes(poderSel)) mostrarPoder(null);
+      el.poderVazio.style.display = todos.length ? "none" : "";
+      el.poderInfo.style.display = todos.length ? "" : "none";
     }
-    poderBtns.forEach(({b, p}) => b.disabled = S.aura < p.preco);
+    poderBtns.forEach(({b, p}) => b.classList.toggle("caro", S.aura < p.preco));
+  }
+  el.poderList.addEventListener("pointerleave", e=>{ if(e.pointerType === "mouse") mostrarPoder(null); });
+  mostrarPoder(null);
+
+  // vitrine: uma fileira por melhoria comprada, com os ícones "trabalhando"
+  let vitrineKey = null;
+  function renderVitrine(){
+    const key = UPGRADES.map(u => own(u.id)).join();
+    if(key === vitrineKey) return;
+    vitrineKey = key;
+    const donos = UPGRADES.filter(u => own(u.id) > 0);
+    el.vitrineVazia.style.display = donos.length ? "none" : "";
+    el.vitrine.innerHTML = donos.map(u=>{
+      const n = Math.min(VITRINE.max, own(u.id)), cor = UPGRADES.indexOf(u) * VITRINE.passoCor;
+      const figuras = Array.from({length:n}, (_, k)=>{
+        const col = k % VITRINE.porLinha, lin = Math.floor(k / VITRINE.porLinha);
+        return `<span style="left:${2 + col*(94/VITRINE.porLinha) + lin*2}%;bottom:${8 + lin*26 + (k*7)%5}px;animation-delay:${(k*.37)%1.4}s">${icone(u.id)}</span>`;
+      }).join("");
+      return `<div class="fileira" style="--h:${cor}"><b>${u.name} <small>x${own(u.id)}</small></b>${figuras}</div>`;
+    }).join("");
   }
 
   let accKey = null;

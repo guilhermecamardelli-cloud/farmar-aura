@@ -12,8 +12,11 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
 - **Espaço** (ou o botão "Giro da Aura"): o boneco gira e ganha aura extra. Recarga de 6 s.
 - **Aura Dourada**: um orbe dourado aparece no palco a cada 1–3 min. Clique nele para
   ganhar Frenesi (aura/s x7), Clique divino (clique x15) ou Sorte (pacote de aura).
-- **Loja**: melhorias (compradas várias vezes) e poderes (compra única, dobram uma melhoria
-  ou mudam uma regra, como giro mais rápido ou combo x5).
+- **Tela em 3 colunas** (como o Cookie Clicker): à esquerda o boneco; no centro a **Vitrine**
+  (cada melhoria comprada vira uma fileira com seus ícones trabalhando) e as abas
+  Boneco, Conquistas e Status; à direita a **Loja**. No celular as colunas ficam uma embaixo da outra.
+- **Loja**: poderes numa grade de ícones (passe o mouse para ver, clique para comprar; no celular,
+  toque para ver e toque de novo para comprar) e melhorias, que podem ser compradas de 1, 10 ou 100.
 - **Conquistas**: 115 metas (5 secretas); cada uma dá +2% de aura e +4% de **Brilho**.
 - **Brilho** (como o "leite" do Cookie Clicker): a poça de aura no pé do palco sobe com o Brilho
   e muda de cor a cada 25 conquistas (Lilás, Safira, Esmeralda, Rubi, Dourada, Arco-íris, Cósmica).

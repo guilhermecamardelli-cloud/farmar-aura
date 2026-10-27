@@ -21,11 +21,12 @@ README.md    regras, decisões e próximos passos
 - Web primeiro, mobile depois. Visual 2D cartoon; boneco desenhado em SVG com animações de piscar e respirar.
 - Controles: clique/toque, A/D e setas (braços alternam); Espaço = "Giro da Aura" (aura extra, recarga 6 s). Combo x1–x4.
 - v2: 12 melhorias, 55 poderes, Aura Dourada (orbe com bônus temporário), 45 conquistas (+2% cada), acessórios no boneco, fundo animado em canvas, abas Loja/Boneco/Conquistas/Status.
+- Layout em 3 colunas como o Cookie Clicker: palco (esquerda) | centro com abas Vitrine/Boneco/Conquistas/Status | loja com poderes em grade de ícones e comprar 1/10/100 (`QTD_COMPRA`). No computador cada coluna rola sozinha; abaixo de 1000px empilham (palco, loja, centro).
 - Ícones: tudo usa os SVGs de `icones.js` (traço do boneco: contorno escuro, cores chapadas). Ícone de melhoria = mesmo nome do id. Não usar emojis na interface.
 - v4: Brilho (4% por conquista, poça de aura que muda de cor a cada 25) + 6 Mascotes (aura/s x (1 + Brilho x fator)), 115 conquistas (5 secretas, `secreta:true`).
 - v3: editor de boneco (corpo, rosto, pele, cabelo, cores, chapéu, nome) em `EDITOR`/`ROSTOS`/`CHAPEUS`; partes dos corpos em `ESTILOS` são funções que recebem as cores escolhidas. Save v3 guarda `visual`.
 - Progresso salvo em `localStorage` (chave `farmar-aura`) com campo `v`; mudou o formato do save → subir `SAVE_VERSAO` e adicionar uma função em `MIGRACOES`. Ganho offline até 1 h a 50%.
-- Balanceamento centralizado no começo do `game.js`: `UPGRADES`, `GROWTH`, `SPIN_CD`, `COMBO_MAX`, `CONQ_BONUS`, `PODER_TIERS`, `PODERES_EXTRA`, `DOURADA`, `BRILHO_POR_CONQ`, `CONQ_POR_POCA`, `POCAS`, `CEU`, `ORBITA`.
+- Balanceamento centralizado no começo do `game.js`: `UPGRADES`, `GROWTH`, `SPIN_CD`, `COMBO_MAX`, `CONQ_BONUS`, `PODER_TIERS`, `PODERES_EXTRA`, `DOURADA`, `BRILHO_POR_CONQ`, `CONQ_POR_POCA`, `POCAS`, `CEU`, `ORBITA`, `VITRINE`, `QTD_COMPRA`.
 - Fora do MVP: backend, pagamento, chat, multiplayer, IA. Skins (3 a 5) ficam como monetização futura.
 
 ## Convenções
