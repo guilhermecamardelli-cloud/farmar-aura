@@ -14,12 +14,15 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
   ganhar Frenesi (aura/s x7), Clique divino (clique x15) ou Sorte (pacote de aura).
 - **Loja**: melhorias (compradas várias vezes) e poderes (compra única, dobram uma melhoria
   ou mudam uma regra, como giro mais rápido ou combo x5).
-- **Conquistas**: 44 metas; cada uma dá +2% de aura.
-- **Boneco**: 6 estilos e 8 acessórios que aparecem conforme as melhorias
+- **Conquistas**: 45 metas; cada uma dá +2% de aura.
+- **Boneco**: monte o seu: corpo (6 tipos), rosto (4 expressões), pele, cabelo e cor do cabelo,
+  cor da roupa e da calça, chapéu (7 opções) e nome. Algumas opções são liberadas jogando
+  (ex.: cartola com 1 mi de aura, auréola com 20 conquistas). Botões 🎲 Aleatório e ↺ Voltar ao padrão.
+  Mais 8 acessórios que aparecem conforme as melhorias
   (óculos, pulseiras, notas musicais, corrente, coroa, flashes, runas, aura arco-íris).
 - **Status**: estatísticas, exportar/importar save e recomeçar.
 
-## Estado atual (v2)
+## Estado atual (v3)
 
 - O jogo está em três arquivos: `index.html` (estrutura), `style.css` (visual)
   e `game.js` (lógica).
@@ -28,7 +31,9 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
 - Fundo animado em canvas: estrelas, estrelas cadentes e partículas de aura
   (quanto mais aura/s, mais partículas). O palco muda de cor a cada movimento liberado
   e os ícones das melhorias giram em volta do boneco.
-- 12 melhorias (5 novas na v2), 55 poderes, 44 conquistas.
+- 12 melhorias, 55 poderes, 45 conquistas.
+- Boneco personalizável (v3): as opções do editor ficam em `EDITOR`, `ROSTOS` e `CHAPEUS`;
+  o visual escolhido fica em `S.visual`.
 - Save em `localStorage` com número de versão (`v`). Saves antigos são migrados
   automaticamente (`MIGRACOES` no `game.js`); o save da v1 é lido da chave antiga.
 - Ganho offline: até 1 h a 50%.

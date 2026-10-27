@@ -19,7 +19,8 @@ README.md    regras, decisões e próximos passos
 ## Decisões de design
 - Web primeiro, mobile depois. Visual 2D cartoon; boneco desenhado em SVG com animações de piscar e respirar.
 - Controles: clique/toque, A/D e setas (braços alternam); Espaço = "Giro da Aura" (aura extra, recarga 6 s). Combo x1–x4.
-- v2: 12 melhorias, 55 poderes, Aura Dourada (orbe com bônus temporário), 44 conquistas (+2% cada), acessórios no boneco, fundo animado em canvas, abas Loja/Boneco/Conquistas/Status.
+- v2: 12 melhorias, 55 poderes, Aura Dourada (orbe com bônus temporário), 45 conquistas (+2% cada), acessórios no boneco, fundo animado em canvas, abas Loja/Boneco/Conquistas/Status.
+- v3: editor de boneco (corpo, rosto, pele, cabelo, cores, chapéu, nome) em `EDITOR`/`ROSTOS`/`CHAPEUS`; partes dos corpos em `ESTILOS` são funções que recebem as cores escolhidas. Save v3 guarda `visual`.
 - Progresso salvo em `localStorage` (chave `farmar-aura`) com campo `v`; mudou o formato do save → subir `SAVE_VERSAO` e adicionar uma função em `MIGRACOES`. Ganho offline até 1 h a 50%.
 - Balanceamento centralizado no começo do `game.js`: `UPGRADES`, `GROWTH`, `SPIN_CD`, `COMBO_MAX`, `CONQ_BONUS`, `PODER_TIERS`, `PODERES_EXTRA`, `DOURADA`, `CEU`, `ORBITA`.
 - Fora do MVP: backend, pagamento, chat, multiplayer, IA. Skins (3 a 5) ficam como monetização futura.

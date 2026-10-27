@@ -149,10 +149,24 @@ button{font:inherit;color:var(--txt);border:0;cursor:pointer}
 .detalhe{background:#0003;border-radius:10px;padding:8px 10px;min-height:2.6em}
 .detalhe b{color:var(--txt)}
 
-.estilos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
-.est{background:var(--card2);padding:8px 4px;border-radius:10px;border:2px solid transparent;font-size:.8rem}
-.est:hover{border-color:#b388ff55}
-.est.ativo{border-color:var(--aura)}
+/* editor do boneco: prévia fixa no topo enquanto rola as opções */
+.preview{position:sticky;top:8px;z-index:2;height:190px;display:grid;place-items:center;border-radius:14px;
+  background:radial-gradient(circle at 50% 45%,#b388ff44,transparent 60%),#120d2a;border:1px solid #ffffff14}
+.preview svg{width:120px;height:180px;overflow:visible}
+.nome{display:flex;flex-direction:column;gap:4px;font-size:.8rem;color:var(--mut)}
+.nome input{font:inherit;font-size:.95rem;color:var(--txt);background:#0005;border:1px solid #ffffff22;border-radius:10px;
+  padding:8px 10px;user-select:text;-webkit-user-select:text}
+.nome input:focus{outline:2px solid var(--aura);border-color:transparent}
+.editor h3{margin:6px 0 4px;font-size:.78rem;color:var(--mut);font-weight:600}
+.formas{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px}
+.forma{background:var(--card2);padding:8px 4px;border-radius:10px;border:2px solid transparent;font-size:.8rem}
+.forma:hover{border-color:#b388ff55}
+.forma.ativo{border-color:var(--aura)}
+.cores{display:flex;flex-wrap:wrap;gap:8px}
+.cor{width:32px;height:32px;border-radius:50%;border:2px solid #ffffff33;font-size:.8rem;padding:0;box-shadow:inset 0 -4px 0 #0003}
+.cor.padrao{background:var(--card2);color:var(--mut);font-size:1rem}
+.cor.ativo{outline:3px solid var(--aura);outline-offset:2px}
+.travado{opacity:.4;filter:grayscale(.6)}
 
 .up{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;background:var(--card2);padding:10px 12px;border-radius:12px;border:2px solid transparent}
 .up:disabled{opacity:.45;cursor:not-allowed}

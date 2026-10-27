@@ -11,7 +11,7 @@
 <div class="app">
 
   <main class="stage" id="stage" data-nivel="0">
-    <h1>Farmar Aura</h1>
+    <h1 id="titulo">Farmar Aura</h1>
     <div class="score" id="score">0</div>
     <p class="rate"><b id="perClick">1</b> por clique · <b id="perSec">0</b> por segundo</p>
     <div class="buffs" id="buffs"></div>
@@ -46,7 +46,7 @@
   <aside class="shop">
     <nav class="abas" id="abas">
       <button data-aba="loja" class="ativo">🛒 Loja</button>
-      <button data-aba="boneco">🧍 Boneco</button>
+      <button data-aba="boneco">🎨 Boneco</button>
       <button data-aba="conquistas">🏆 <span id="conqCount">0</span></button>
       <button data-aba="status">📊 Status</button>
     </nav>
@@ -60,8 +60,16 @@
     </section>
 
     <section class="painel" id="aba-boneco">
-      <h2>Estilo</h2>
-      <div class="estilos" id="estilos"></div>
+      <h2>Monte seu boneco</h2>
+      <div class="preview" id="preview"></div>
+      <label class="nome">Nome
+        <input id="nomeBoneco" maxlength="16" placeholder="Dê um nome ao seu boneco" autocomplete="off">
+      </label>
+      <div class="savebox">
+        <button id="aleatorio">🎲 Aleatório</button>
+        <button id="padrao">↺ Voltar ao padrão</button>
+      </div>
+      <div class="editor" id="editor"></div>
       <h2>Acessórios</h2>
       <div class="lista" id="acessorios"></div>
     </section>

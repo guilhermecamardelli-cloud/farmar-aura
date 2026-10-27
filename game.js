@@ -112,12 +112,13 @@
     [
       {id:"combo4",  ic:"🔥", nome:"Ritmo perfeito",   desc:"Chegar ao combo x4",                ok:()=>S.stats.maxMult >= 4},
       {id:"combo5",  ic:"☄️", nome:"Fora de controle", desc:"Chegar ao combo x5",                ok:()=>S.stats.maxMult >= 5},
-      {id:"estilos", ic:"🎭", nome:"Mil faces",        desc:"Usar os 6 estilos de boneco",       ok:()=>S.stats.estilos.length >= Object.keys(ESTILOS).length},
+      {id:"estilos", ic:"🎭", nome:"Mil faces",        desc:"Usar os 6 tipos de corpo",       ok:()=>S.stats.estilos.length >= Object.keys(ESTILOS).length},
       {id:"todos",   ic:"🧩", nome:"Colecionador",     desc:"Ter pelo menos 1 de cada melhoria", ok:()=>UPGRADES.every(u=>own(u.id) >= 1)},
       {id:"dez",     ic:"📦", nome:"Estoque cheio",    desc:"Ter 10 de cada melhoria",           ok:()=>UPGRADES.every(u=>own(u.id) >= 10)},
       {id:"poder5",  ic:"⚡", nome:"Poderoso",         desc:"Comprar 5 poderes",                 ok:()=>S.poderes.length >= 5},
       {id:"poder20", ic:"🔱", nome:"Onipotente",       desc:"Comprar 20 poderes",                ok:()=>S.poderes.length >= 20},
-      {id:"estilo",  ic:"💎", nome:"Estiloso",         desc:"Liberar todos os acessórios",       ok:()=>ACESSORIOS.every(a=>own(a.req) > 0)}
+      {id:"estilo",  ic:"💎", nome:"Estiloso",         desc:"Liberar todos os acessórios",       ok:()=>ACESSORIOS.every(a=>own(a.req) > 0)},
+      {id:"criador", ic:"🎨", nome:"Criador",          desc:"Personalizar 4 partes do boneco",   ok:()=>partesPersonalizadas() >= 4}
     ]
   );
 
@@ -149,10 +150,20 @@
     ]}
   ];
 
-  /* ---------- desenho: rosto, mãos e acessórios (reaproveitados pelos estilos) ---------- */
-  // rosto confiante: olhar de canto, sobrancelha levantada, sorriso de lado
-  function rosto(x, y, escala, cor = "#1b1b1b", olho = "#fff"){
-    return `<g transform="translate(${x} ${y}) scale(${escala})">
+  /* ---------- desenho: rosto, mãos, chapéus e acessórios (reaproveitados pelos estilos) ---------- */
+  const CONTORNO = "#1b1b1b";
+  const CLARO = "#f3efff";
+
+  // mistura duas cores hex (t = 0..1); usada para clarear/escurecer os degradês
+  function misturar(a, b, t){
+    const p = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+    const [x, y] = [p(a), p(b)];
+    return "#" + x.map((v, i) => Math.round(v + (y[i]-v)*t).toString(16).padStart(2, "0")).join("");
+  }
+
+  // expressões do rosto (sobrancelhas, olhos e boca); req = condição para liberar
+  const ROSTOS = {
+    confiante: {nome:"😏 Confiante", desenho:(cor, olho)=>`
       <path d="M-34 -16 Q-21 -25 -8 -18" fill="none" stroke="${cor}" stroke-width="4" stroke-linecap="round"/>
       <path d="M8 -12 L34 -15" fill="none" stroke="${cor}" stroke-width="4" stroke-linecap="round"/>
       <g class="olhos">
@@ -162,7 +173,40 @@
         <path d="M-35 -3 L-5 -2" stroke="${cor}" stroke-width="4.5" stroke-linecap="round"/>
         <path d="M5 -2 L35 -3" stroke="${cor}" stroke-width="4.5" stroke-linecap="round"/>
       </g>
-      <path d="M-12 25 Q2 31 14 18" fill="none" stroke="${cor}" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M-12 25 Q2 31 14 18" fill="none" stroke="${cor}" stroke-width="3.5" stroke-linecap="round"/>`},
+    feliz: {nome:"😄 Feliz", desenho:(cor)=>`
+      <path d="M-32 -18 Q-20 -26 -8 -18" fill="none" stroke="${cor}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M8 -18 Q20 -26 32 -18" fill="none" stroke="${cor}" stroke-width="4" stroke-linecap="round"/>
+      <g class="olhos">
+        <path d="M-30 4 Q-20 -8 -10 4" fill="none" stroke="${cor}" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M10 4 Q20 -8 30 4" fill="none" stroke="${cor}" stroke-width="4.5" stroke-linecap="round"/>
+      </g>
+      <path d="M-16 15 Q0 36 16 15 Z" fill="${cor}" stroke="${cor}" stroke-width="3" stroke-linejoin="round"/>
+      <ellipse cx="0" cy="25" rx="7" ry="3.5" fill="#ff7a8a"/>`},
+    fofo: {nome:"🥺 Fofo", desenho:(cor)=>`
+      <path d="M-28 -18 Q-20 -22 -12 -18" fill="none" stroke="${cor}" stroke-width="3" stroke-linecap="round"/>
+      <path d="M12 -18 Q20 -22 28 -18" fill="none" stroke="${cor}" stroke-width="3" stroke-linecap="round"/>
+      <g class="olhos">
+        <circle cx="-20" cy="2" r="9" fill="${cor}"/><circle cx="20" cy="2" r="9" fill="${cor}"/>
+        <circle cx="-17" cy="-1" r="3" fill="#fff"/><circle cx="23" cy="-1" r="3" fill="#fff"/>
+      </g>
+      <ellipse cx="-31" cy="16" rx="7" ry="4" fill="#ff8fa3" opacity=".7"/>
+      <ellipse cx="31" cy="16" rx="7" ry="4" fill="#ff8fa3" opacity=".7"/>
+      <path d="M-7 20 Q-3.5 25 0 20 Q3.5 25 7 20" fill="none" stroke="${cor}" stroke-width="3" stroke-linecap="round"/>`},
+    bravo: {nome:"😠 Bravo", req:()=>S.stats.maxMult >= 4, reqTxt:"Chegue ao combo x4", desenho:(cor, olho)=>`
+      <g class="olhos">
+        <ellipse cx="-20" cy="2" rx="11" ry="7" fill="${olho}" stroke="${cor}" stroke-width="2.5"/>
+        <ellipse cx="20" cy="2" rx="11" ry="7" fill="${olho}" stroke="${cor}" stroke-width="2.5"/>
+        <circle cx="-17" cy="3" r="4" fill="${cor}"/><circle cx="17" cy="3" r="4" fill="${cor}"/>
+      </g>
+      <path d="M-35 -14 L-8 -4" stroke="${cor}" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M8 -4 L35 -14" stroke="${cor}" stroke-width="5.5" stroke-linecap="round"/>
+      <path d="M-12 25 Q0 16 12 25" fill="none" stroke="${cor}" stroke-width="3.5" stroke-linecap="round"/>`}
+  };
+  // rosto no ponto (x,y); os óculos ficam por cima de qualquer expressão
+  function rosto(x, y, escala, cor, olho, tipo){
+    return `<g transform="translate(${x} ${y}) scale(${escala})">
+      ${(ROSTOS[tipo] || ROSTOS.confiante).desenho(cor, olho)}
       <g class="acc acc-oculos">
         <rect x="-38" y="-10" width="33" height="18" rx="6" fill="#111"/>
         <rect x="5" y="-10" width="33" height="18" rx="6" fill="#111"/>
@@ -173,29 +217,59 @@
     </g>`;
   }
 
+  // chapéus: desenhados no topo da cabeça (ponto "coroa" do estilo).
+  // alt = quanto a coroa sobe para ficar em cima do chapéu
+  const CHAPEUS = {
+    nenhum:  {nome:"🚫 Nenhum"},
+    bone:    {nome:"🧢 Boné", alt:16, desenho:c=>`
+      <path d="M-50 22 Q-50 -16 0 -16 Q50 -16 50 22 Z" fill="${c.roupa}" stroke="${CONTORNO}" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M0 -16 L0 20" stroke="${CONTORNO}" stroke-width="1.5" opacity=".35"/>
+      <circle cx="0" cy="-16" r="4" fill="${c.roupaEscura}" stroke="${CONTORNO}" stroke-width="2"/>
+      <path d="M-54 20 Q0 38 54 20 Q0 28 -54 20 Z" fill="${c.roupaEscura}" stroke="${CONTORNO}" stroke-width="2.5" stroke-linejoin="round"/>`},
+    gorro:   {nome:"🧶 Gorro", alt:30, desenho:c=>`
+      <path d="M-48 22 Q-50 -22 0 -24 Q50 -22 48 22 Z" fill="${c.roupa}" stroke="${CONTORNO}" stroke-width="3" stroke-linejoin="round"/>
+      <rect x="-51" y="8" width="102" height="16" rx="6" fill="${c.roupaEscura}" stroke="${CONTORNO}" stroke-width="3"/>
+      <circle cx="0" cy="-27" r="9" fill="#fff" stroke="${CONTORNO}" stroke-width="3"/>`},
+    lacinho: {nome:"🎀 Lacinho", desenho:()=>`
+      <g transform="translate(34 6) rotate(-15)">
+        <path d="M0 0 L-18 -12 L-18 12 Z M0 0 L18 -12 L18 12 Z" fill="#ff5c8a" stroke="${CONTORNO}" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle r="5" fill="#ff8fb0" stroke="${CONTORNO}" stroke-width="2"/>
+      </g>`},
+    cartola: {nome:"🎩 Cartola", alt:52, req:()=>S.total >= 1e6, reqTxt:"Farme 1 mi de aura no total", desenho:c=>`
+      <rect x="-32" y="-44" width="64" height="62" rx="4" fill="#20202c" stroke="#000" stroke-width="2.5"/>
+      <rect x="-32" y="2" width="64" height="10" fill="${c.roupa}"/>
+      <ellipse cx="0" cy="18" rx="52" ry="8" fill="#20202c" stroke="#000" stroke-width="2.5"/>
+      <path d="M-24 -38 L-24 -4" stroke="#fff" stroke-width="3" opacity=".15" stroke-linecap="round"/>`},
+    chifres: {nome:"😈 Chifres", req:()=>S.stats.douradas >= 5, reqTxt:"Pegue 5 Auras Douradas", desenho:()=>`
+      <path d="M-30 18 Q-46 -6 -34 -30 Q-28 -8 -16 12 Z" fill="#e5484d" stroke="${CONTORNO}" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M30 18 Q46 -6 34 -30 Q28 -8 16 12 Z" fill="#e5484d" stroke="${CONTORNO}" stroke-width="2.5" stroke-linejoin="round"/>`},
+    aureola: {nome:"😇 Auréola", req:()=>S.conquistas.length >= 20, reqTxt:"Tenha 20 conquistas", desenho:()=>`
+      <ellipse cx="0" cy="-42" rx="32" ry="8" fill="none" stroke="#ffd54f" stroke-width="5"/>
+      <ellipse cx="0" cy="-42" rx="32" ry="8" fill="none" stroke="#fff6c2" stroke-width="1.5"/>`}
+  };
+
   // coroa com a base no ponto (0,0)
   function coroa([x, y, s]){
     return `<g class="acc acc-coroa" transform="translate(${x} ${y}) scale(${s})">
-      <path d="M-24 0 L-28 -24 L-13 -11 L0 -30 L13 -11 L28 -24 L24 0 Z" fill="#ffd54f" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M-24 0 L-28 -24 L-13 -11 L0 -30 L13 -11 L28 -24 L24 0 Z" fill="#ffd54f" stroke="${CONTORNO}" stroke-width="3" stroke-linejoin="round"/>
       <rect x="-23" y="-7" width="46" height="5" fill="#f0b400"/>
-      <circle cx="0" cy="-30" r="3.5" fill="#ff5c8a" stroke="#1b1b1b" stroke-width="1.5"/>
-      <circle cx="-28" cy="-24" r="3" fill="#69f0ae" stroke="#1b1b1b" stroke-width="1.5"/>
-      <circle cx="28" cy="-24" r="3" fill="#69f0ae" stroke="#1b1b1b" stroke-width="1.5"/>
+      <circle cx="0" cy="-30" r="3.5" fill="#ff5c8a" stroke="${CONTORNO}" stroke-width="1.5"/>
+      <circle cx="-28" cy="-24" r="3" fill="#69f0ae" stroke="${CONTORNO}" stroke-width="1.5"/>
+      <circle cx="28" cy="-24" r="3" fill="#69f0ae" stroke="${CONTORNO}" stroke-width="1.5"/>
     </g>`;
   }
   // corrente pendurada a partir do ponto (0,0), com medalhão "A"
   function colar([x, y, s]){
     return `<g class="acc acc-colar" transform="translate(${x} ${y}) scale(${s})">
-      <path d="M-22 0 Q0 30 22 0" fill="none" stroke="#1b1b1b" stroke-width="6" stroke-linecap="round"/>
+      <path d="M-22 0 Q0 30 22 0" fill="none" stroke="${CONTORNO}" stroke-width="6" stroke-linecap="round"/>
       <path d="M-22 0 Q0 30 22 0" fill="none" stroke="#ffd54f" stroke-width="3.5" stroke-dasharray="4 2.5" stroke-linecap="round"/>
-      <circle cx="0" cy="17" r="6.5" fill="#ffd54f" stroke="#1b1b1b" stroke-width="2"/>
-      <text x="0" y="20.5" font-size="9" text-anchor="middle" font-weight="900" fill="#1b1b1b">A</text>
+      <circle cx="0" cy="17" r="6.5" fill="#ffd54f" stroke="${CONTORNO}" stroke-width="2"/>
+      <text x="0" y="20.5" font-size="9" text-anchor="middle" font-weight="900" fill="${CONTORNO}">A</text>
     </g>`;
   }
 
   // cada tipo de mão tem dois desenhos: "normal" (relaxada) e "aberta" (espalmada).
   // a mão é desenhada com o pulso no ponto (0,0), apontando para baixo, polegar para fora do corpo
-  const CONTORNO = "#1b1b1b";
   const MAOS = {
     redonda: {
       normal: c => `
@@ -224,176 +298,179 @@
     }
   };
 
-  /* ---------- estilos de boneco ---------- */
-  // cada estilo diz onde fica o ombro (do braço esquerdo), o tamanho dos braços,
-  // as cores e o desenho das partes. O braço direito é o esquerdo espelhado.
-  // coroa e colar = [x, y, escala] de onde os acessórios ficam
-  const PELE = "#ffcfa3";
-  const CLARO = "#f3efff";
+  /* ---------- tipos de corpo ---------- */
+  // cada corpo diz onde fica o ombro (do braço esquerdo), o tamanho dos braços e o desenho das partes.
+  // O braço direito é o esquerdo espelhado. As partes recebem "c" com as cores escolhidas pelo jogador
+  // (c.pele, c.roupa, c.calca são degradês; c.roupaCor e c.cabelo são cores lisas).
+  // padrao = cores usadas quando o jogador deixa "padrão"; coroa, colar e rosto = [x, y, escala]
   const ESTILOS = {
     chibi: {
       nome:"😎 Chibi",
-      ombro:[78,142], braco:24, antebraco:24, grossura:14, forma:"tubo",
-      corBraco:"url(#roupa)", corAntebraco:"url(#roupa)", mao:"redonda", corMao:PELE, tamMao:1.1,
-      pescoco:[100,132], quadril:[100,196], coroa:[100,24,1], colar:[100,138,1],
-      fundo:`
+      ombro:[78,142], braco:24, antebraco:24, grossura:14, forma:"tubo", mao:"redonda", tamMao:1.1,
+      pescoco:[100,132], quadril:[100,196], coroa:[100,24,1], colar:[100,138,1], rosto:[100,88,1],
+      padrao:{roupa:"#7b55f0", calca:"#4a79c0", cabelo:"#2b1a0e"},
+      cores: c => ({braco:c.roupa, antebraco:c.roupa, mao:c.pele}),
+      fundo: c => `
         <ellipse cx="100" cy="246" rx="46" ry="7" fill="#000" opacity=".35"/>
-        <rect x="82" y="188" width="16" height="44" rx="7" fill="url(#calca)" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="102" y="188" width="16" height="44" rx="7" fill="url(#calca)" stroke="#1b1b1b" stroke-width="3"/>
-        <ellipse cx="87" cy="236" rx="14" ry="8" fill="#fff" stroke="#1b1b1b" stroke-width="3"/>
-        <ellipse cx="113" cy="236" rx="14" ry="8" fill="#fff" stroke="#1b1b1b" stroke-width="3"/>`,
-      tronco:`
-        <rect x="70" y="128" width="60" height="66" rx="18" fill="url(#roupa)" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="71.5" y="152" width="57" height="14" fill="#c9b8ff"/>
-        <path d="M100 131 L100 192" stroke="#1b1b1b" stroke-width="2"/>
-        <path d="M86 136 L90 142 L86 148 L82 142 Z" fill="#ffd54f" stroke="#1b1b1b" stroke-width="1.5"/>`,
-      cabeca:`
-        <circle cx="100" cy="78" r="56" fill="url(#pele)" stroke="#1b1b1b" stroke-width="3"/>
+        <rect x="82" y="188" width="16" height="44" rx="7" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="102" y="188" width="16" height="44" rx="7" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>
+        <ellipse cx="87" cy="236" rx="14" ry="8" fill="#fff" stroke="${CONTORNO}" stroke-width="3"/>
+        <ellipse cx="113" cy="236" rx="14" ry="8" fill="#fff" stroke="${CONTORNO}" stroke-width="3"/>`,
+      tronco: c => `
+        <rect x="70" y="128" width="60" height="66" rx="18" fill="${c.roupa}" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="71.5" y="152" width="57" height="14" fill="#fff" opacity=".35"/>
+        <path d="M100 131 L100 192" stroke="${CONTORNO}" stroke-width="2"/>
+        <path d="M86 136 L90 142 L86 148 L82 142 Z" fill="#ffd54f" stroke="${CONTORNO}" stroke-width="1.5"/>`,
+      cabeca: c => `<circle cx="100" cy="78" r="56" fill="${c.pele}" stroke="${CONTORNO}" stroke-width="3"/>`,
+      cabelo: c => `
         <path d="M44 82 Q36 18 100 16 Q166 18 156 82 Q150 54 132 46 L127 62 L114 42 L103 60 L90 42 L80 60 Q60 52 44 82 Z"
-              fill="#2b1a0e" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/>
-        ${rosto(100, 88, 1)}`
+              fill="${c.cabelo}" stroke="${CONTORNO}" stroke-width="3" stroke-linejoin="round"/>`
     },
     cartoon: {
       nome:"🙂 Cartoon",
-      ombro:[63,100], braco:40, antebraco:40, grossura:16, forma:"tubo",
-      corBraco:"url(#roupa)", corAntebraco:"url(#pele)", mao:"redonda", corMao:PELE, tamMao:1,
-      pescoco:[100,88], quadril:[100,190], coroa:[100,20,.75], colar:[100,92,1],
-      fundo:`
+      ombro:[63,100], braco:40, antebraco:40, grossura:16, forma:"tubo", mao:"redonda", tamMao:1,
+      pescoco:[100,88], quadril:[100,190], coroa:[100,20,.75], colar:[100,92,1], rosto:[100,57,.62],
+      padrao:{roupa:"#7b55f0", calca:"#4a79c0", cabelo:"#2b1a0e"},
+      cores: c => ({braco:c.roupa, antebraco:c.pele, mao:c.pele}),
+      fundo: c => `
         <ellipse cx="100" cy="282" rx="48" ry="8" fill="#000" opacity=".35"/>
-        <rect x="76" y="185" width="20" height="82" rx="8" fill="url(#calca)" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="104" y="185" width="20" height="82" rx="8" fill="url(#calca)" stroke="#1b1b1b" stroke-width="3"/>
-        <path d="M66 276 Q66 262 80 262 L96 262 L96 276 Z" fill="#fff" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/>
-        <path d="M134 276 Q134 262 120 262 L104 262 L104 276 Z" fill="#fff" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/>`,
-      tronco:`
-        <rect x="68" y="88" width="64" height="106" rx="18" fill="url(#roupa)" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="70" y="172" width="60" height="8" fill="#1b1b1b"/>
-        <path d="M100 118 L106 132 L100 146 L94 132 Z" fill="#ffd54f" stroke="#1b1b1b" stroke-width="2"/>`,
-      cabeca:`
-        <circle cx="100" cy="52" r="36" fill="url(#pele)" stroke="#1b1b1b" stroke-width="3"/>
+        <rect x="76" y="185" width="20" height="82" rx="8" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="104" y="185" width="20" height="82" rx="8" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>
+        <path d="M66 276 Q66 262 80 262 L96 262 L96 276 Z" fill="#fff" stroke="${CONTORNO}" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M134 276 Q134 262 120 262 L104 262 L104 276 Z" fill="#fff" stroke="${CONTORNO}" stroke-width="3" stroke-linejoin="round"/>`,
+      tronco: c => `
+        <rect x="68" y="88" width="64" height="106" rx="18" fill="${c.roupa}" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="70" y="172" width="60" height="8" fill="${CONTORNO}"/>
+        <path d="M100 118 L106 132 L100 146 L94 132 Z" fill="#ffd54f" stroke="${CONTORNO}" stroke-width="2"/>`,
+      cabeca: c => `<circle cx="100" cy="52" r="36" fill="${c.pele}" stroke="${CONTORNO}" stroke-width="3"/>`,
+      cabelo: c => `
         <path d="M64 50 Q62 12 100 12 Q140 12 136 50 Q124 30 108 34 Q112 24 98 26 Q90 34 76 34 Q68 40 64 50 Z"
-              fill="#2b1a0e" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/>
-        ${rosto(100, 57, 0.62)}`
+              fill="${c.cabelo}" stroke="${CONTORNO}" stroke-width="3" stroke-linejoin="round"/>`
     },
     blocado: {
       nome:"🧱 Blocado",
-      ombro:[61,122], braco:28, antebraco:28, grossura:16, forma:"bloco",
-      corBraco:"#ff7043", corAntebraco:"url(#pele)", mao:"bloco", corMao:PELE, tamMao:1,
-      pescoco:[100,116], quadril:[100,180], coroa:[100,37,.85], colar:[100,118,1],
-      fundo:`
+      ombro:[61,122], braco:28, antebraco:28, grossura:16, forma:"bloco", mao:"bloco", tamMao:1,
+      pescoco:[100,116], quadril:[100,180], coroa:[100,37,.85], colar:[100,118,1], rosto:[100,82,.85],
+      padrao:{roupa:"#ff7043", calca:"#37306b", cabelo:"#2b1a0e"},
+      cores: c => ({braco:c.roupa, antebraco:c.pele, mao:c.pele}),
+      fundo: c => `
         <ellipse cx="100" cy="246" rx="44" ry="7" fill="#000" opacity=".35"/>
-        <rect x="80" y="176" width="19" height="58" fill="#37306b" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="101" y="176" width="19" height="58" fill="#37306b" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="76" y="228" width="24" height="11" fill="#fff" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="100" y="228" width="24" height="11" fill="#fff" stroke="#1b1b1b" stroke-width="3"/>`,
-      tronco:`
-        <rect x="70" y="116" width="60" height="64" rx="2" fill="#ff7043" stroke="#1b1b1b" stroke-width="3"/>
-        <path d="M100 132 L107 145 L100 158 L93 145 Z" fill="#ffd54f" stroke="#1b1b1b" stroke-width="2"/>`,
-      cabeca:`
-        <rect x="64" y="40" width="72" height="74" rx="4" fill="url(#pele)" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="62" y="34" width="76" height="20" rx="3" fill="#2b1a0e" stroke="#1b1b1b" stroke-width="3"/>
-        <rect x="63" y="52" width="8" height="16" fill="#2b1a0e"/>
-        <rect x="129" y="52" width="8" height="16" fill="#2b1a0e"/>
-        ${rosto(100, 82, 0.85)}`
+        <rect x="80" y="176" width="19" height="58" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="101" y="176" width="19" height="58" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="76" y="228" width="24" height="11" fill="#fff" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="100" y="228" width="24" height="11" fill="#fff" stroke="${CONTORNO}" stroke-width="3"/>`,
+      tronco: c => `
+        <rect x="70" y="116" width="60" height="64" rx="2" fill="${c.roupa}" stroke="${CONTORNO}" stroke-width="3"/>
+        <path d="M100 132 L107 145 L100 158 L93 145 Z" fill="#ffd54f" stroke="${CONTORNO}" stroke-width="2"/>`,
+      cabeca: c => `<rect x="64" y="40" width="72" height="74" rx="4" fill="${c.pele}" stroke="${CONTORNO}" stroke-width="3"/>`,
+      cabelo: c => `
+        <rect x="62" y="34" width="76" height="20" rx="3" fill="${c.cabelo}" stroke="${CONTORNO}" stroke-width="3"/>
+        <rect x="63" y="52" width="8" height="16" fill="${c.cabelo}"/>
+        <rect x="129" y="52" width="8" height="16" fill="${c.cabelo}"/>`
     },
     jujuba: {
       nome:"🫘 Jujuba",
-      ombro:[57,124], braco:24, antebraco:24, grossura:16, forma:"tubo",
-      corBraco:"url(#jujuba)", corAntebraco:"url(#jujuba)", mao:"redonda", corMao:"#f5a623", tamMao:1,
-      pescoco:[100,110], quadril:[100,210], coroa:[100,46,.85], colar:[100,112,1],
-      fundo:`
+      ombro:[57,124], braco:24, antebraco:24, grossura:16, forma:"tubo", mao:"redonda", tamMao:1,
+      pescoco:[100,110], quadril:[100,210], coroa:[100,46,.85], colar:[100,112,1], rosto:[100,84,.58],
+      padrao:{roupa:"#f7ac30", calca:"#c76a00", cabelo:"#2b1a0e"},
+      cores: c => ({braco:c.roupa, antebraco:c.roupa, mao:c.roupa}),
+      fundo: c => `
         <ellipse cx="100" cy="234" rx="46" ry="7" fill="#000" opacity=".35"/>
-        <ellipse cx="82" cy="222" rx="15" ry="8" fill="#c76a00" stroke="#1b1b1b" stroke-width="3"/>
-        <ellipse cx="118" cy="222" rx="15" ry="8" fill="#c76a00" stroke="#1b1b1b" stroke-width="3"/>`,
-      tronco:`
-        <rect x="56" y="40" width="88" height="180" rx="44" fill="url(#jujuba)" stroke="#1b1b1b" stroke-width="3"/>
-        <path d="M100 150 L106 162 L100 174 L94 162 Z" fill="#fff3dc" stroke="#1b1b1b" stroke-width="2"/>`,
-      cabeca:`
-        <rect x="64" y="60" width="72" height="48" rx="24" fill="#fff3dc" stroke="#1b1b1b" stroke-width="3"/>
-        ${rosto(100, 84, 0.58)}`
+        <ellipse cx="82" cy="222" rx="15" ry="8" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>
+        <ellipse cx="118" cy="222" rx="15" ry="8" fill="${c.calca}" stroke="${CONTORNO}" stroke-width="3"/>`,
+      tronco: c => `
+        <rect x="56" y="40" width="88" height="180" rx="44" fill="${c.roupa}" stroke="${CONTORNO}" stroke-width="3"/>
+        <path d="M100 150 L106 162 L100 174 L94 162 Z" fill="#fff3dc" stroke="${CONTORNO}" stroke-width="2"/>`,
+      cabeca: () => `<rect x="64" y="60" width="72" height="48" rx="24" fill="#fff3dc" stroke="${CONTORNO}" stroke-width="3"/>`
     },
     palitinho: {
       nome:"✏️ Palitinho",
-      ombro:[100,116], braco:30, antebraco:28, grossura:5, forma:"linha",
-      corBraco:CLARO, corAntebraco:CLARO, mao:"palito", corMao:CLARO, tamMao:1.2,
-      pescoco:[100,104], quadril:[100,172], coroa:[100,42,.6], colar:[100,106,.7],
-      fundo:`
+      ombro:[100,116], braco:30, antebraco:28, grossura:5, forma:"linha", mao:"palito", tamMao:1.2,
+      pescoco:[100,104], quadril:[100,172], coroa:[100,42,.6], colar:[100,106,.7], rosto:[100,74,.68],
+      corRosto:CLARO, olho:"#1a1535",
+      padrao:{roupa:CLARO, calca:CLARO, cabelo:CLARO},
+      // linhas retas não aceitam degradê, então o palitinho usa as cores lisas
+      cores: c => ({braco:c.roupaCor, antebraco:c.roupaCor, mao:c.roupaCor}),
+      fundo: c => `
         <ellipse cx="100" cy="246" rx="40" ry="6" fill="#000" opacity=".35"/>
-        <path d="M100 170 L84 240 M100 170 L116 240" stroke="${CLARO}" stroke-width="5" stroke-linecap="round" fill="none"/>`,
-      tronco:`<path d="M100 104 L100 172" stroke="${CLARO}" stroke-width="5" stroke-linecap="round"/>`,
-      cabeca:`
-        <path d="M86 44 Q94 28 100 40 Q106 26 114 44" fill="none" stroke="${CLARO}" stroke-width="4" stroke-linecap="round"/>
-        <circle cx="100" cy="72" r="32" fill="#1a1535" stroke="${CLARO}" stroke-width="5"/>
-        ${rosto(100, 74, 0.68, CLARO, "#1a1535")}`
+        <path d="M100 170 L84 240 M100 170 L116 240" stroke="${c.calcaCor}" stroke-width="5" stroke-linecap="round" fill="none"/>`,
+      tronco: c => `<path d="M100 104 L100 172" stroke="${c.roupaCor}" stroke-width="5" stroke-linecap="round"/>`,
+      cabeca: () => `<circle cx="100" cy="72" r="32" fill="#1a1535" stroke="${CLARO}" stroke-width="5"/>`,
+      cabelo: c => `<path d="M86 44 Q94 28 100 40 Q106 26 114 44" fill="none" stroke="${c.cabelo}" stroke-width="4" stroke-linecap="round"/>`
     },
     espirito: {
       nome:"👻 Espírito",
-      ombro:[56,136], braco:20, antebraco:20, grossura:12, forma:"tubo",
-      corBraco:"url(#espirito)", corAntebraco:"url(#espirito)", mao:"redonda", corMao:"#8f80f0", tamMao:0.9,
-      pescoco:[100,130], quadril:[100,200], coroa:[100,46,.8], colar:[100,132,1],
-      fundo:`<ellipse cx="100" cy="240" rx="36" ry="6" fill="#000" opacity=".3"/>`,
-      tronco:`
+      ombro:[56,136], braco:20, antebraco:20, grossura:12, forma:"tubo", mao:"redonda", tamMao:.9,
+      pescoco:[100,130], quadril:[100,200], coroa:[100,46,.8], colar:[100,132,1], rosto:[100,104,.75],
+      corRosto:"#26215C",
+      padrao:{roupa:"#8f80f0", calca:"#8f80f0", cabelo:"#ffd54f"},
+      cores: c => ({braco:c.roupa, antebraco:c.roupa, mao:c.roupa}),
+      fundo: () => `<ellipse cx="100" cy="240" rx="36" ry="6" fill="#000" opacity=".3"/>`,
+      tronco: c => `
         <path d="M100 40 Q152 40 152 122 Q152 184 128 210 L119 194 L110 214 L100 196 L90 214 L81 194 L72 210 Q48 184 48 122 Q48 40 100 40 Z"
-              fill="url(#espirito)" stroke="#26215C" stroke-width="3" stroke-linejoin="round"/>`,
-      cabeca:`
-        <path d="M100 41 Q90 26 98 10 Q104 24 112 16 Q112 32 100 41 Z" fill="#ffd54f" stroke="#26215C" stroke-width="2" stroke-linejoin="round"/>
-        ${rosto(100, 104, 0.75, "#26215C", "#fff")}`
+              fill="${c.roupa}" stroke="#26215C" stroke-width="3" stroke-linejoin="round"/>`,
+      cabeca: () => "",
+      // a chama em cima da cabeça faz o papel do cabelo
+      cabelo: c => `<path d="M100 41 Q90 26 98 10 Q104 24 112 16 Q112 32 100 41 Z" fill="${c.cabelo}" stroke="#26215C" stroke-width="2" stroke-linejoin="round"/>`
     }
   };
 
-  // cores em degradê usadas pelos estilos
-  const DEFS = `<defs>
-    <linearGradient id="pele" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffdcb8"/><stop offset="1" stop-color="#f0a870"/></linearGradient>
-    <linearGradient id="roupa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9d7bff"/><stop offset="1" stop-color="#5a2fd6"/></linearGradient>
-    <linearGradient id="calca" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b8ed6"/><stop offset="1" stop-color="#3a64a8"/></linearGradient>
-    <linearGradient id="jujuba" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc94a"/><stop offset="1" stop-color="#ef8f17"/></linearGradient>
-    <linearGradient id="espirito" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3a8ff"/><stop offset="1" stop-color="#6a5ae0"/></linearGradient>
-  </defs>`;
-
-  // monta um braço (ombro > cotovelo > pulso > mão). lado = "L" ou "R"
-  function braco(e, lado){
-    const [x, y] = e.ombro, w = e.grossura;
-    const yCotovelo = y + e.braco, yPulso = yCotovelo + e.antebraco;
-    const peca = (y0, comp, cor) => e.forma === "linha"
-      ? `<path d="M${x} ${y0} L${x} ${y0+comp}" stroke="${cor}" stroke-width="${w}" stroke-linecap="round"/>`
-      : `<rect x="${x-w/2}" y="${y0-w/2}" width="${w}" height="${comp+w}" rx="${e.forma==="bloco" ? 2 : w/2}"
-               fill="${cor}" stroke="#1b1b1b" stroke-width="2.5"/>`;
-    const mao = MAOS[e.mao];
-    return `<g id="ombro${lado}" class="junta" style="transform-origin:${x}px ${y}px">
-        ${peca(y, e.braco, e.corBraco)}
-        <g id="cotovelo${lado}" class="junta" style="transform-origin:${x}px ${yCotovelo}px">
-          ${peca(yCotovelo, e.antebraco, e.corAntebraco)}
-          <ellipse class="acc acc-pulseira" cx="${x}" cy="${yPulso-3}" rx="${w/2+2.5}" ry="3.5" fill="#ffd54f" stroke="#1b1b1b" stroke-width="1.5"/>
-          <g id="pulso${lado}" class="junta" style="transform-origin:${x}px ${yPulso}px">
-            <g transform="translate(${x} ${yPulso}) scale(${e.tamMao})">
-              <g class="mao-normal">${mao.normal(e.corMao)}</g>
-              <g class="mao-aberta">${mao.aberta(e.corMao)}</g>
-            </g>
-          </g>
-        </g>
-      </g>`;
+  /* ---------- editor do boneco ---------- */
+  // visual = o que o jogador escolheu; null nas cores = usar a cor padrão do corpo
+  function visualPadrao(){
+    return {corpo:"chibi", rosto:"confiante", pele:"#f8c294", cabelo:"original", corCabelo:null,
+            roupa:null, calca:null, chapeu:"nenhum", nome:""};
   }
+  const NOME_MAX = 16;
+  // grupos do editor: campo no visual, se é cor (bolinhas) e as opções; req/reqTxt = condição para liberar
+  const comNomes = obj => Object.keys(obj).map(k => ({id:k, nome:obj[k].nome, req:obj[k].req, reqTxt:obj[k].reqTxt}));
+  const EDITOR = [
+    {campo:"corpo", titulo:"Corpo", opcoes:comNomes(ESTILOS)},
+    {campo:"rosto", titulo:"Rosto", opcoes:comNomes(ROSTOS)},
+    {campo:"pele", titulo:"Pele", cor:true, opcoes:[
+      {id:"#ffe0c4"},{id:"#f8c294"},{id:"#e0a370"},{id:"#b97a4a"},{id:"#8d5a3b"},{id:"#5e3b26"},
+      {id:"#9be7a0", req:()=>S.total >= 1e5, reqTxt:"Farme 100 mil de aura no total"},
+      {id:"#a8c8ff", req:()=>S.total >= 1e7, reqTxt:"Farme 10 mi de aura no total"}]},
+    {campo:"cabelo", titulo:"Cabelo", opcoes:[{id:"original", nome:"💇 Com cabelo"}, {id:"careca", nome:"🥚 Careca"}]},
+    {campo:"corCabelo", titulo:"Cor do cabelo", cor:true, opcoes:[
+      {id:null},{id:"#2b1a0e"},{id:"#6b3e1f"},{id:"#d9a441"},{id:"#e8e2d6"},{id:"#d2452c"},{id:"#3b2a8f"},{id:"#ff6fb5"},{id:"#33c9a8"}]},
+    {campo:"roupa", titulo:"Roupa", cor:true, opcoes:[
+      {id:null},{id:"#7b55f0"},{id:"#e5484d"},{id:"#2f9e5a"},{id:"#2b7de9"},{id:"#f59e0b"},{id:"#ec4899"},{id:"#2a2a3a"},{id:"#f1f5f9"},
+      {id:"#ffd54f", req:()=>own("lenda") > 0, reqTxt:"Tenha 1 Lenda da Aura"}]},
+    {campo:"calca", titulo:"Calça e pés", cor:true, opcoes:[
+      {id:null},{id:"#4a79c0"},{id:"#37306b"},{id:"#2a2a3a"},{id:"#6b4f2a"},{id:"#9ca3af"},{id:"#7f1d1d"}]},
+    {campo:"chapeu", titulo:"Chapéu", opcoes:comNomes(CHAPEUS)}
+  ];
+  const livre = o => !o.req || o.req();
+  // quantas partes estão diferentes do padrão (para a conquista "Criador")
+  const partesPersonalizadas = () => {
+    const p = visualPadrao();
+    return ["corpo","rosto","pele","cabelo","corCabelo","roupa","calca","chapeu"].filter(k => S.visual[k] !== p[k]).length;
+  };
 
   /* ---------- estado e save ---------- */
   const SAVE_KEY = "farmar-aura";
   const SAVE_ANTIGO = "farmar-aura-v1";   // chave usada pela versão 1 do jogo
-  const SAVE_VERSAO = 2;
+  const SAVE_VERSAO = 3;
   let S = fresh();
   function fresh(){
     return {v:SAVE_VERSAO, aura:0, total:0, owned:{}, poderes:[], conquistas:[], ocultos:[],
       stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:["chibi"], inicio:Date.now()},
-      spinReadyAt:0, saved:Date.now(), estilo:"chibi", nivel:0};
+      spinReadyAt:0, saved:Date.now(), visual:visualPadrao(), nivel:0};
   }
   // cada migração leva um save da versão n para a n+1
   const MIGRACOES = {
     1: d => Object.assign(d, {poderes:[], conquistas:[], ocultos:[],
-      stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:[d.estilo || "chibi"], inicio:Date.now()}})
+      stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:[d.estilo || "chibi"], inicio:Date.now()}}),
+    // v3: o boneco virou personalizável; o estilo escolhido vira o "corpo"
+    2: d => { d.visual = Object.assign(visualPadrao(), {corpo:d.estilo || "chibi"}); delete d.estilo; return d; }
   };
   function lerSave(txt){
     let d = JSON.parse(txt);
     if(!d || typeof d.aura !== "number") throw new Error("save inválido");
     for(let v = d.v || 1; v < SAVE_VERSAO; v++){ d = MIGRACOES[v](d); d.v = v + 1; }
     const f = fresh();
-    return Object.assign(f, d, {owned:d.owned || {}, stats:Object.assign(f.stats, d.stats)});
+    return Object.assign(f, d, {owned:d.owned || {}, stats:Object.assign(f.stats, d.stats), visual:Object.assign(f.visual, d.visual)});
   }
   function load(){
     try{
@@ -444,25 +521,77 @@
     poderList:$("poderList"), poderVazio:$("poderVazio"), acess:$("acessorios"),
     conqList:$("conqList"), conqInfo:$("conqInfo"), conqDetalhe:$("conqDetalhe"), conqCount:$("conqCount"),
     stats:$("stats"), saveTxt:$("saveTxt"), toasts:$("toasts"),
+    editor:$("editor"), preview:$("preview"), nome:$("nomeBoneco"), titulo:$("titulo"),
     svg:null   // preenchido quando o boneco é montado
   };
 
   /* ---------- boneco: montar e mexer ---------- */
-  let juntas = {};
-  function montarBoneco(nome){
-    const e = ESTILOS[nome] || ESTILOS.chibi;
-    el.char.innerHTML = `<svg viewBox="0 0 200 300" width="200" height="300">
-      ${DEFS}${e.fundo}
+  // cores escolhidas pelo jogador (ou as padrão do corpo). p = prefixo dos ids,
+  // para o boneco do palco e a prévia do editor não usarem os mesmos ids
+  function coresDe(v, e, p){
+    const roupa = v.roupa || e.padrao.roupa, calca = v.calca || e.padrao.calca;
+    const degrade = (id, cor) => `<linearGradient id="${p}${id}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${misturar(cor, "#ffffff", .25)}"/><stop offset="1" stop-color="${misturar(cor, "#000000", .2)}"/></linearGradient>`;
+    return {
+      pele:`url(#${p}pele)`, roupa:`url(#${p}roupa)`, calca:`url(#${p}calca)`,
+      roupaCor:roupa, roupaEscura:misturar(roupa, "#000000", .35), calcaCor:calca,
+      cabelo:v.corCabelo || e.padrao.cabelo,
+      defs:`<defs>${degrade("pele", v.pele)}${degrade("roupa", roupa)}${degrade("calca", calca)}</defs>`
+    };
+  }
+
+  // monta um braço (ombro > cotovelo > pulso > mão). lado = "L" ou "R"
+  function braco(e, c, lado, p){
+    const [x, y] = e.ombro, w = e.grossura, cor = e.cores(c);
+    const yCotovelo = y + e.braco, yPulso = yCotovelo + e.antebraco;
+    const peca = (y0, comp, cor) => e.forma === "linha"
+      ? `<path d="M${x} ${y0} L${x} ${y0+comp}" stroke="${cor}" stroke-width="${w}" stroke-linecap="round"/>`
+      : `<rect x="${x-w/2}" y="${y0-w/2}" width="${w}" height="${comp+w}" rx="${e.forma==="bloco" ? 2 : w/2}"
+               fill="${cor}" stroke="${CONTORNO}" stroke-width="2.5"/>`;
+    const mao = MAOS[e.mao];
+    return `<g id="${p}ombro${lado}" class="junta" style="transform-origin:${x}px ${y}px">
+        ${peca(y, e.braco, cor.braco)}
+        <g id="${p}cotovelo${lado}" class="junta" style="transform-origin:${x}px ${yCotovelo}px">
+          ${peca(yCotovelo, e.antebraco, cor.antebraco)}
+          <ellipse class="acc acc-pulseira" cx="${x}" cy="${yPulso-3}" rx="${w/2+2.5}" ry="3.5" fill="#ffd54f" stroke="${CONTORNO}" stroke-width="1.5"/>
+          <g id="${p}pulso${lado}" class="junta" style="transform-origin:${x}px ${yPulso}px">
+            <g transform="translate(${x} ${yPulso}) scale(${e.tamMao})">
+              <g class="mao-normal">${mao.normal(cor.mao)}</g>
+              <g class="mao-aberta">${mao.aberta(cor.mao)}</g>
+            </g>
+          </g>
+        </g>
+      </g>`;
+  }
+
+  // desenha o boneco inteiro a partir do visual escolhido
+  function svgBoneco(v, p){
+    const e = ESTILOS[v.corpo] || ESTILOS.chibi, c = coresDe(v, e, p);
+    const ch = CHAPEUS[v.chapeu] || CHAPEUS.nenhum, [cx, cy, cs] = e.coroa;
+    return `<svg viewBox="0 0 200 300" width="200" height="300">
+      ${c.defs}${e.fundo(c)}
       <g class="respira">
-        <g id="corpo" class="junta" style="transform-origin:${e.quadril[0]}px ${e.quadril[1]}px">
-          ${e.tronco}
+        <g id="${p}corpo" class="junta" style="transform-origin:${e.quadril[0]}px ${e.quadril[1]}px">
+          ${e.tronco(c)}
           ${colar(e.colar)}
-          <g id="cabeca" class="junta" style="transform-origin:${e.pescoco[0]}px ${e.pescoco[1]}px">${e.cabeca}${coroa(e.coroa)}</g>
-          ${braco(e, "L")}
-          <g transform="translate(200 0) scale(-1 1)">${braco(e, "R")}</g>
+          <g id="${p}cabeca" class="junta" style="transform-origin:${e.pescoco[0]}px ${e.pescoco[1]}px">
+            ${e.cabeca(c)}
+            ${v.cabelo === "careca" || !e.cabelo ? "" : e.cabelo(c)}
+            ${rosto(...e.rosto, e.corRosto || CONTORNO, e.olho || "#fff", v.rosto)}
+            ${ch.desenho ? `<g transform="translate(${cx} ${cy}) scale(${cs})">${ch.desenho(c)}</g>` : ""}
+            ${coroa([cx, cy - (ch.alt || 0)*cs, cs])}
+          </g>
+          ${braco(e, c, "L", p)}
+          <g transform="translate(200 0) scale(-1 1)">${braco(e, c, "R", p)}</g>
         </g>
       </g>
     </svg>`;
+  }
+
+  let juntas = {};
+  function montarBoneco(){
+    el.char.innerHTML = svgBoneco(S.visual, "");
+    el.preview.innerHTML = svgBoneco(S.visual, "p-");
     el.svg = el.char.querySelector("svg");
     juntas = {
       oL:$("ombroL"), cL:$("cotoveloL"), pL:$("pulsoL"),
@@ -470,6 +599,7 @@
       corpo:$("corpo"), cabeca:$("cabeca")
     };
     setPose(REST);
+    el.titulo.textContent = S.visual.nome ? "Aura de " + S.visual.nome : "Farmar Aura";
   }
   function setPose(p){
     for(const k in juntas) juntas[k].style.transform = "rotate(" + p[k] + "deg)";
@@ -500,19 +630,53 @@
     });
   });
 
-  /* ---------- menu de estilos ---------- */
-  const estiloBtns = {};
-  Object.keys(ESTILOS).forEach(k=>{
-    const b = document.createElement("button");
-    b.className = "est";
-    b.textContent = ESTILOS[k].nome;
-    b.addEventListener("click", ()=>{
-      S.estilo = k;
-      if(!S.stats.estilos.includes(k)) S.stats.estilos.push(k);
-      montarBoneco(k); save(); render();
+  /* ---------- editor do boneco (DOM) ---------- */
+  let editorKey = null;
+  function montarEditor(){
+    editorKey = EDITOR.map(g => g.opcoes.map(o => livre(o) ? 1 : 0).join("")).join();
+    el.editor.innerHTML = "";
+    EDITOR.forEach(g=>{
+      const h = document.createElement("h3");
+      h.textContent = g.titulo;
+      const linha = document.createElement("div");
+      linha.className = g.cor ? "cores" : "formas";
+      g.opcoes.forEach(o=>{
+        const ok = livre(o), b = document.createElement("button");
+        b.className = (g.cor ? "cor" : "forma") + (o.id === null ? " padrao" : "") +
+          (S.visual[g.campo] === o.id ? " ativo" : "") + (ok ? "" : " travado");
+        if(g.cor && o.id) b.style.background = o.id;
+        b.textContent = g.cor ? (o.id === null ? "↺" : ok ? "" : "🔒") : (ok ? o.nome : "🔒 " + semEmojiTxt(o.nome));
+        b.title = ok ? (o.nome || (o.id ? o.id : "Cor padrão do corpo")) : o.reqTxt;
+        b.addEventListener("click", ()=>{
+          if(!ok) return toast("🔒", "Ainda bloqueado", o.reqTxt);
+          escolher(g.campo, o.id);
+        });
+        linha.appendChild(b);
+      });
+      el.editor.append(h, linha);
     });
-    $("estilos").appendChild(b);
-    estiloBtns[k] = b;
+  }
+  function escolher(campo, valor){
+    S.visual[campo] = valor;
+    if(campo === "corpo" && !S.stats.estilos.includes(valor)) S.stats.estilos.push(valor);
+    montarBoneco(); montarEditor(); save();
+  }
+  el.nome.addEventListener("input", ()=>{
+    S.visual.nome = el.nome.value.trim().slice(0, NOME_MAX);
+    el.titulo.textContent = S.visual.nome ? "Aura de " + S.visual.nome : "Farmar Aura";
+    save();
+  });
+  $("aleatorio").addEventListener("click", ()=>{
+    EDITOR.forEach(g=>{
+      const ok = g.opcoes.filter(livre);
+      S.visual[g.campo] = ok[Math.floor(Math.random()*ok.length)].id;
+    });
+    if(!S.stats.estilos.includes(S.visual.corpo)) S.stats.estilos.push(S.visual.corpo);
+    montarBoneco(); montarEditor(); save();
+  });
+  $("padrao").addEventListener("click", ()=>{
+    S.visual = Object.assign(visualPadrao(), {corpo:S.visual.corpo, nome:S.visual.nome});
+    montarBoneco(); montarEditor(); save();
   });
 
   /* ---------- loja (DOM) ---------- */
@@ -652,7 +816,7 @@
   });
   el.spinBtn.addEventListener("click", spin);
   window.addEventListener("keydown", e=>{
-    if(e.repeat || e.target.tagName === "TEXTAREA") return;
+    if(e.repeat || ["TEXTAREA","INPUT"].includes(e.target.tagName)) return;
     const k = e.key.toLowerCase();
     if(k===" "){ e.preventDefault(); spin(); }
     else if(["a","d","arrowleft","arrowright"].includes(k)){
@@ -662,8 +826,8 @@
   });
   el.reset.addEventListener("click", ()=>{
     if(confirm("Apagar todo o progresso e recomeçar?")){
-      const estilo = S.estilo;          // o boneco escolhido continua o mesmo
-      S = fresh(); S.estilo = estilo; S.stats.estilos = [estilo];
+      const visual = S.visual;          // o boneco montado continua o mesmo
+      S = fresh(); S.visual = visual; S.stats.estilos = [visual.corpo];
       combo = 0; buffs = [];
       sumirDourada(); save(); render(); renderLento();
     }
@@ -684,7 +848,7 @@
       const novo = lerSave(decodeURIComponent(escape(atob(txt))));
       if(!confirm("Trocar o progresso atual por esse save?")) return;
       S = novo; combo = 0; buffs = [];
-      montarBoneco(S.estilo); save(); render(); renderLento();
+      montarBoneco(); montarEditor(); el.nome.value = S.visual.nome; save(); render(); renderLento();
       el.saveTxt.value = "";
       toast("📥", "Save importado", fmt(S.aura) + " de aura");
     }catch(e){
@@ -768,7 +932,6 @@
             : " <span>· todos liberados!</span>");
     el.stage.dataset.nivel = n;
 
-    for(const k in estiloBtns) estiloBtns[k].classList.toggle("ativo", k === S.estilo);
 
     // efeitos dourados ativos
     const agora = Date.now();
@@ -840,6 +1003,7 @@
     ACESSORIOS.forEach(a=>{
       const livre = own(a.req) > 0, on = accOn(a.id);
       el.arena.classList.toggle("tem-" + a.id, on);
+      el.preview.classList.toggle("tem-" + a.id, on);
       const u = UPGRADES.find(x => x.id === a.req);
       const b = document.createElement("button");
       b.className = "acc-item" + (on ? " on" : "");
@@ -876,6 +1040,8 @@
   let conqKey = null;
   function renderLento(){
     checarConquistas();
+    // alguma opção do editor foi liberada?
+    if(EDITOR.map(g => g.opcoes.map(o => livre(o) ? 1 : 0).join("")).join() !== editorKey) montarEditor();
     const nc = S.conquistas.length;
     el.conqCount.textContent = nc;
     if(conqKey !== nc){
@@ -961,7 +1127,9 @@
 
   /* ---------- início ---------- */
   load();
-  montarBoneco(S.estilo);
+  montarBoneco();
+  montarEditor();
+  el.nome.value = S.visual.nome;
   agendarDourada();
   // ganho enquanto estava fora (até OFFLINE_MAX, a OFFLINE_PCT)
   const away = Math.min(OFFLINE_MAX, (Date.now() - (S.saved||Date.now()))/1000);
