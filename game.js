@@ -33,6 +33,22 @@
   const SPIN_CD = 6000;        // ms
   const COMBO_MAX = 30;        // cada 10 pontos de combo = +1 no multiplicador (x4)
   const CONQ_BONUS = 0.02;     // cada conquista: +2% de aura
+
+  /* ---------- Brilho (como o "leite" do Cookie Clicker) ---------- */
+  // cada conquista dá BRILHO_POR_CONQ de Brilho; os Mascotes multiplicam a aura/s pelo Brilho.
+  // a cada CONQ_POR_POCA conquistas a poça de aura no pé do palco muda de cor
+  const BRILHO_POR_CONQ = 0.04;  // 4% por conquista (25 conquistas = 100%)
+  const CONQ_POR_POCA = 25;
+  const POCAS = [
+    {nome:"Lilás",     cor:"#b388ff"},
+    {nome:"Safira",    cor:"#4f8cff"},
+    {nome:"Esmeralda", cor:"#34d399"},
+    {nome:"Rubi",      cor:"#f43f5e"},
+    {nome:"Dourada",   cor:"#ffd54f"},
+    {nome:"Arco-íris", cor:"#ff6b6b", classe:"arcoiris"},
+    {nome:"Cósmica",   cor:"#c4b5fd", classe:"cosmica"}
+  ];
+  const POCA_ALTURA = {base:26, porNivel:14, max:110};   // px
   const OFFLINE_MAX = 3600;    // segundos
   const OFFLINE_PCT = 0.5;
 
@@ -52,7 +68,18 @@
     {id:"giro2",  name:"💫 Giro duplo",        desc:"O giro dá o dobro de aura",        efeito:"giroX",       val:2,    preco:15e4,   req:()=>S.stats.giros >= 50},
     {id:"combo5", name:"🔥 Ritmo insano",      desc:"O combo vai até x5",               efeito:"comboMax",    val:40,   preco:5e4,    req:()=>S.stats.maxMult >= 4},
     {id:"sorte1", name:"🍀 Sorte dourada",     desc:"A Aura Dourada aparece 2x mais",   efeito:"douradaFreq", val:2,    preco:777777, req:()=>S.stats.douradas >= 3},
-    {id:"sorte2", name:"⏳ Brilho duradouro",  desc:"Efeitos dourados duram 2x mais",   efeito:"douradaDur",  val:2,    preco:777e4,  req:()=>S.stats.douradas >= 7}
+    {id:"sorte2", name:"⏳ Brilho duradouro",  desc:"Efeitos dourados duram 2x mais",   efeito:"douradaDur",  val:2,    preco:777e4,  req:()=>S.stats.douradas >= 7},
+    // mascotes: aura/s x (1 + Brilho x val). Vários mascotes se multiplicam entre si
+    ...[
+      ["gato",   "🐱 Mascote aprendiz",  .1,   1e6,  15],
+      ["cao",    "🐶 Mascote ajudante",  .125, 1e8,  30],
+      ["raposa", "🦊 Mascote treinado",  .15,  1e10, 45],
+      ["coruja", "🦉 Mascote sábio",     .175, 1e12, 60],
+      ["dragao", "🐉 Mascote lendário",  .2,   1e14, 80],
+      ["unic",   "🦄 Mascote cósmico",   .2,   1e16, 100]
+    ].map(([id, name, val, preco, conq]) => ({id:"mascote-"+id, name, efeito:"mascote", val, preco,
+      desc:"Aura/s x(1 + Brilho x " + String(val).replace(".", ",") + ")",
+      req:()=>S.conquistas.length >= conq}))
   ];
   const PODERES = UPGRADES.flatMap(u => PODER_TIERS.map((t, i) => ({
     id: u.id + "-" + i,
@@ -97,18 +124,25 @@
   const CONQUISTAS = [].concat(
     [[100,"✨","Primeira faísca"],[1e3,"🌟","Brilhando"],[1e4,"💫","Radiante"],[1e5,"🔆","Ofuscante"],
      [1e6,"☀️","Sol particular"],[1e7,"🌠","Estrela cadente"],[1e8,"🌌","Nebulosa"],[1e9,"🪐","Planetário"],
-     [1e10,"🌀","Buraco negro"],[1e12,"♾️","Aura cósmica"]]
+     [1e10,"🌀","Buraco negro"],[1e11,"💥","Supernova"],[1e12,"♾️","Aura cósmica"],[1e13,"🧬","Multiverso"],
+     [1e14,"👁️","Onisciente"],[1e15,"🔮","Além da aura"]]
       .map(([n,ic,nome]) => ({id:"total"+n, ic, nome, desc:"Farmar " + fmt(n) + " de aura no total", ok:()=>S.total >= n})),
     [[10,"🌱","Hortinha de aura"],[100,"🚜","Fazenda de aura"],[1e3,"🏭","Fábrica de aura"],
-     [1e4,"🏙️","Metrópole da aura"],[1e5,"🌍","Aura global"],[1e6,"🛸","Aura interestelar"]]
+     [1e4,"🏙️","Metrópole da aura"],[1e5,"🌍","Aura global"],[1e6,"🛸","Aura interestelar"],
+     [1e7,"🌌","Aura galáctica"],[1e8,"🕳️","Aura dimensional"],[1e9,"✴️","Aura absoluta"]]
       .map(([n,ic,nome]) => ({id:"seg"+n, ic, nome, desc:"Chegar a " + fmt(n) + " de aura/s", ok:()=>perSecBase() >= n})),
-    [[100,"👆","Dedo nervoso"],[1000,"🖐️","Mão calejada"],[10000,"🦾","Braço biônico"]]
+    [[100,"👆","Dedo nervoso"],[1000,"🖐️","Mão calejada"],[10000,"🦾","Braço biônico"],[25000,"🤖","Clicador automático"],[50000,"⚙️","Máquina de clicar"]]
       .map(([n,ic,nome]) => ({id:"clique"+n, ic, nome, desc:"Clicar " + fmt(n) + " vezes", ok:()=>S.stats.cliques >= n})),
-    [[10,"🌀","Rodopio"],[100,"🌪️","Furacão humano"]]
+    [[1e3,"👋","Mão leve"],[1e6,"✋","Mão pesada"],[1e9,"🫴","Mão de ouro"],[1e12,"🙌","Mão divina"]]
+      .map(([n,ic,nome]) => ({id:"auraclique"+n, ic, nome, desc:"Farmar " + fmt(n) + " de aura só clicando", ok:()=>S.stats.auraClique >= n})),
+    [[10,"🌀","Rodopio"],[100,"🌪️","Furacão humano"],[500,"🎠","Carrossel"],[1000,"🌊","Redemoinho eterno"]]
       .map(([n,ic,nome]) => ({id:"giro"+n, ic, nome, desc:"Fazer " + n + " Giros da Aura", ok:()=>S.stats.giros >= n})),
-    [[1,"🟡","Sortudo"],[10,"💛","Caçador de ouro"],[50,"🏅","Rei Midas"]]
+    [[1,"🟡","Sortudo"],[10,"💛","Caçador de ouro"],[25,"🪙","Garimpeiro"],[50,"🏅","Rei Midas"],[100,"🏆","Mina de ouro"],[250,"👑","Dono do sol"]]
       .map(([n,ic,nome]) => ({id:"dourada"+n, ic, nome, desc:"Pegar " + n + " Aura" + (n>1?"s Douradas":" Dourada"), ok:()=>S.stats.douradas >= n})),
-    UPGRADES.map(u => ({id:"cinquenta-"+u.id, ic:emoji(u), nome:semEmoji(u) + " x50", desc:"Ter 50 de " + semEmoji(u), ok:()=>own(u.id) >= 50})),
+    // marcos de cada melhoria (o id "cinquenta-" vem da v2 e foi mantido)
+    [1, 50, 100, 150].flatMap(n => UPGRADES.map(u => ({
+      id:(n === 50 ? "cinquenta-" : "qtd" + n + "-") + u.id, ic:emoji(u), nome:semEmoji(u) + " x" + n,
+      desc:"Ter " + n + " de " + semEmoji(u), ok:()=>own(u.id) >= n}))),
     [
       {id:"combo4",  ic:"🔥", nome:"Ritmo perfeito",   desc:"Chegar ao combo x4",                ok:()=>S.stats.maxMult >= 4},
       {id:"combo5",  ic:"☄️", nome:"Fora de controle", desc:"Chegar ao combo x5",                ok:()=>S.stats.maxMult >= 5},
@@ -118,8 +152,27 @@
       {id:"poder5",  ic:"⚡", nome:"Poderoso",         desc:"Comprar 5 poderes",                 ok:()=>S.poderes.length >= 5},
       {id:"poder20", ic:"🔱", nome:"Onipotente",       desc:"Comprar 20 poderes",                ok:()=>S.poderes.length >= 20},
       {id:"estilo",  ic:"💎", nome:"Estiloso",         desc:"Liberar todos os acessórios",       ok:()=>ACESSORIOS.every(a=>own(a.req) > 0)},
-      {id:"criador", ic:"🎨", nome:"Criador",          desc:"Personalizar 4 partes do boneco",   ok:()=>partesPersonalizadas() >= 4}
-    ]
+      {id:"criador", ic:"🎨", nome:"Criador",          desc:"Personalizar 4 partes do boneco",   ok:()=>partesPersonalizadas() >= 4},
+      {id:"batizado",ic:"📛", nome:"Batizado",         desc:"Dar um nome ao boneco",             ok:()=>S.visual.nome !== ""},
+      {id:"vaidoso", ic:"🎩", nome:"Vaidoso",          desc:"Usar todos os chapéus",             ok:()=>Object.keys(CHAPEUS).every(k=>S.stats.chapeus.includes(k))},
+      {id:"poder40", ic:"🌩️", nome:"Todo-poderoso",    desc:"Comprar 40 poderes",                ok:()=>S.poderes.length >= 40},
+      {id:"mascote1",ic:"🐾", nome:"Melhor amigo",     desc:"Ter um mascote",                    ok:()=>ativos("mascote").length >= 1},
+      {id:"mascote6",ic:"🦁", nome:"Zoológico",        desc:"Ter os 6 mascotes",                 ok:()=>ativos("mascote").length >= 6},
+      {id:"duplo",   ic:"⚜️", nome:"Combo dourado",    desc:"Ter dois efeitos dourados ao mesmo tempo", ok:()=>buffs.length >= 2},
+      {id:"guardado",ic:"🏦", nome:"Acumulador",       desc:"Ter 1 bi de aura guardada",         ok:()=>S.aura >= 1e9},
+      {id:"tempo1",  ic:"⏱️", nome:"Fiel",             desc:"Jogar por 1 hora",                  ok:()=>S.stats.tempo >= 3600},
+      {id:"tempo10", ic:"⌛", nome:"Viciado em aura",  desc:"Jogar por 10 horas",                ok:()=>S.stats.tempo >= 36000},
+      {id:"dias7",   ic:"📅", nome:"Dedicado",         desc:"Jogar em 7 dias diferentes",        ok:()=>S.stats.dias.length >= 7},
+      {id:"dias30",  ic:"🗓️", nome:"Veterano",         desc:"Jogar em 30 dias diferentes",       ok:()=>S.stats.dias.length >= 30}
+    ],
+    // secretas: o que pedem só aparece depois de conseguir
+    [
+      {id:"purista", ic:"🧘", nome:"Purista",       desc:"Farmar 100 mil de aura sem comprar nenhuma melhoria", ok:()=>S.total >= 1e5 && UPGRADES.every(u=>own(u.id) === 0)},
+      {id:"coruja",  ic:"🌙", nome:"Coruja",        desc:"Jogar às 3 da manhã",                  ok:()=>new Date().getHours() === 3},
+      {id:"quem",    ic:"🪞", nome:"Aura de quem?", desc:"Clicar 10 vezes no título do jogo",    ok:()=>S.stats.cliquesTitulo >= 10},
+      {id:"paciente",ic:"🫥", nome:"Desapegado",    desc:"Deixar 10 Auras Douradas sumirem",     ok:()=>S.stats.douradasPerdidas >= 10},
+      {id:"indeciso",ic:"🔄", nome:"Indeciso",      desc:"Trocar de corpo 50 vezes",             ok:()=>S.stats.trocasCorpo >= 50}
+    ].map(c => Object.assign(c, {secreta:true}))
   );
 
   /* ---------- movimentos (liberados conforme a aura total) ---------- */
@@ -451,11 +504,12 @@
   /* ---------- estado e save ---------- */
   const SAVE_KEY = "farmar-aura";
   const SAVE_ANTIGO = "farmar-aura-v1";   // chave usada pela versão 1 do jogo
-  const SAVE_VERSAO = 3;
+  const SAVE_VERSAO = 4;
   let S = fresh();
   function fresh(){
     return {v:SAVE_VERSAO, aura:0, total:0, owned:{}, poderes:[], conquistas:[], ocultos:[],
-      stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:["chibi"], inicio:Date.now()},
+      stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:["chibi"], inicio:Date.now(),
+             chapeus:["nenhum"], dias:[], tempo:0, cliquesTitulo:0, douradasPerdidas:0, trocasCorpo:0},
       spinReadyAt:0, saved:Date.now(), visual:visualPadrao(), nivel:0};
   }
   // cada migração leva um save da versão n para a n+1
@@ -463,7 +517,9 @@
     1: d => Object.assign(d, {poderes:[], conquistas:[], ocultos:[],
       stats:{cliques:0, auraClique:0, giros:0, douradas:0, maxMult:1, estilos:[d.estilo || "chibi"], inicio:Date.now()}}),
     // v3: o boneco virou personalizável; o estilo escolhido vira o "corpo"
-    2: d => { d.visual = Object.assign(visualPadrao(), {corpo:d.estilo || "chibi"}); delete d.estilo; return d; }
+    2: d => { d.visual = Object.assign(visualPadrao(), {corpo:d.estilo || "chibi"}); delete d.estilo; return d; },
+    // v4: estatísticas novas (chapéus, dias, tempo...); os valores iniciais vêm do fresh()
+    3: d => { d.stats.chapeus = [d.visual.chapeu]; return d; }
   };
   function lerSave(txt){
     let d = JSON.parse(txt);
@@ -495,7 +551,9 @@
   const soma = tipo => UPGRADES.filter(u => u.type === tipo).reduce((a,u)=>a+producao(u), 0);
   const bonusConq = () => 1 + S.conquistas.length * CONQ_BONUS;
   const buffMult = k => buffs.reduce((a,b)=>a*(b[k] || 1), 1);
-  const perSecBase = () => soma("auto") * bonusConq();        // sem efeitos dourados
+  const brilho = () => S.conquistas.length * BRILHO_POR_CONQ;
+  const multMascotes = () => ativos("mascote").reduce((a,p)=>a*(1 + brilho()*p.val), 1);
+  const perSecBase = () => soma("auto") * bonusConq() * multMascotes();   // sem efeitos dourados
   const perSec = () => perSecBase() * buffMult("prod");
   const toque = () => ativos("toque").reduce((a,p)=>a+p.val, 0);
   const clickBase = () => (1 + soma("click")) * bonusConq() + perSec() * toque();
@@ -522,6 +580,7 @@
     conqList:$("conqList"), conqInfo:$("conqInfo"), conqDetalhe:$("conqDetalhe"), conqCount:$("conqCount"),
     stats:$("stats"), saveTxt:$("saveTxt"), toasts:$("toasts"),
     editor:$("editor"), preview:$("preview"), nome:$("nomeBoneco"), titulo:$("titulo"),
+    poca:$("poca"), mascotes:$("mascotes"), brilhoInfo:$("brilhoInfo"), mascotesInfo:$("mascotesInfo"),
     svg:null   // preenchido quando o boneco é montado
   };
 
@@ -657,6 +716,8 @@
     });
   }
   function escolher(campo, valor){
+    if(campo === "corpo" && valor !== S.visual.corpo) S.stats.trocasCorpo++;
+    if(campo === "chapeu" && !S.stats.chapeus.includes(valor)) S.stats.chapeus.push(valor);
     S.visual[campo] = valor;
     if(campo === "corpo" && !S.stats.estilos.includes(valor)) S.stats.estilos.push(valor);
     montarBoneco(); montarEditor(); save();
@@ -672,6 +733,7 @@
       S.visual[g.campo] = ok[Math.floor(Math.random()*ok.length)].id;
     });
     if(!S.stats.estilos.includes(S.visual.corpo)) S.stats.estilos.push(S.visual.corpo);
+    if(!S.stats.chapeus.includes(S.visual.chapeu)) S.stats.chapeus.push(S.visual.chapeu);
     montarBoneco(); montarEditor(); save();
   });
   $("padrao").addEventListener("click", ()=>{
@@ -700,7 +762,8 @@
     if(S.aura < p.preco || tem(p.id)) return;
     S.aura -= p.preco;
     S.poderes.push(p.id);
-    toast("⚡", p.name, p.desc);
+    if(p.efeito === "mascote"){ mascoteKey = null; renderBrilho(); }
+    toast(p.efeito === "mascote" ? "🐾" : "⚡", p.name, p.desc);
     save(); render();
   }
 
@@ -1036,6 +1099,34 @@
       `<span style="transform:rotate(${i*360/lista.length}deg) translate(${ORBITA.raio}px)">${e}</span>`).join("");
   }
 
+  /* ---------- Brilho: poça de aura e mascotes ---------- */
+  const nivelPoca = () => Math.min(POCAS.length - 1, Math.floor(S.conquistas.length / CONQ_POR_POCA));
+  const pocaAtual = () => POCAS[nivelPoca()];
+  function renderBrilho(){
+    const n = nivelPoca(), poca = POCAS[n], prox = POCAS[n+1], nc = S.conquistas.length;
+    // a poça sobe com o Brilho e muda de cor a cada CONQ_POR_POCA conquistas
+    el.poca.style.setProperty("--poca", poca.cor);
+    el.poca.style.height = Math.min(POCA_ALTURA.max, POCA_ALTURA.base + brilho()*POCA_ALTURA.porNivel) + "px";
+    el.poca.className = "poca " + (poca.classe || "");
+    const falta = prox ? (n+1)*CONQ_POR_POCA - nc : 0;
+    el.brilhoInfo.innerHTML = `<b>✨ Brilho ${Math.round(brilho()*100)}%</b> · poça <b style="color:${poca.cor}">${poca.nome}</b>` +
+      (prox ? `<small>Poça ${prox.nome} em ${falta} conquista${falta > 1 ? "s" : ""}</small>` : "<small>Poça máxima!</small>") +
+      `<i style="width:${prox ? (nc % CONQ_POR_POCA)/CONQ_POR_POCA*100 : 100}%;background:${poca.cor}"></i>`;
+  }
+  let mascoteKey = null;
+  function renderMascotes(){
+    const lista = ativos("mascote").map(p => p.name.split(" ")[0]);
+    const key = lista.join() + "|" + S.conquistas.length;   // o multiplicador muda com o Brilho
+    if(key === mascoteKey) return;
+    mascoteKey = key;
+    // metade senta à esquerda do boneco e metade à direita
+    const lado = par => lista.filter((_, i) => i % 2 === par).map((e, i) => `<span style="animation-delay:${i*.4}s">${e}</span>`).join("");
+    el.mascotes.innerHTML = `<div>${lado(0)}</div><div>${lado(1)}</div>`;
+    el.mascotesInfo.textContent = lista.length
+      ? "Mascotes: " + lista.join(" ") + " · aura/s x" + multMascotes().toFixed(2).replace(".", ",")
+      : "Compre Mascotes na loja: eles multiplicam sua aura/s pelo Brilho.";
+  }
+
   /* ---------- render lento (a cada meio segundo e ao trocar de aba) ---------- */
   let conqKey = null;
   function renderLento(){
@@ -1044,18 +1135,22 @@
     if(EDITOR.map(g => g.opcoes.map(o => livre(o) ? 1 : 0).join("")).join() !== editorKey) montarEditor();
     const nc = S.conquistas.length;
     el.conqCount.textContent = nc;
+    renderMascotes();
     if(conqKey !== nc){
       conqKey = nc;
       el.conqInfo.textContent = nc + " de " + CONQUISTAS.length + " · bônus de +" + Math.round(nc*CONQ_BONUS*100) + "% de aura";
+      renderBrilho();
       el.conqList.innerHTML = "";
       CONQUISTAS.forEach(c=>{
         const feita = S.conquistas.includes(c.id);
         const b = document.createElement("button");
         b.className = "conq" + (feita ? " feita" : "");
-        b.textContent = feita ? c.ic : "🔒";
+        b.className += c.secreta ? " secreta" : "";
+        b.textContent = feita ? c.ic : c.secreta ? "❓" : "🔒";
         b.title = feita ? c.nome : "???";
         b.addEventListener("click", ()=>{
-          el.conqDetalhe.innerHTML = (feita ? "<b>" + c.ic + " " + c.nome + "</b>" : "<b>🔒 ???</b>") + " · " + c.desc;
+          el.conqDetalhe.innerHTML = (feita ? "<b>" + c.ic + " " + c.nome + "</b>" : "<b>🔒 ???</b>") + " · " +
+            (feita || !c.secreta ? c.desc : "Conquista secreta");
         });
         el.conqList.appendChild(b);
       });
@@ -1074,6 +1169,9 @@
         ["Melhorias compradas", fmt(UPGRADES.reduce((a,u)=>a+own(u.id), 0))],
         ["Poderes", S.poderes.length + " de " + PODERES.length],
         ["Conquistas", nc + " de " + CONQUISTAS.length],
+        ["Brilho", Math.round(brilho()*100) + "% (poça " + pocaAtual().nome + ")"],
+        ["Mascotes", ativos("mascote").length + " · aura/s x" + multMascotes().toFixed(2).replace(".", ",")],
+        ["Tempo jogado", Math.floor(S.stats.tempo/3600) + " h " + Math.floor(S.stats.tempo%3600/60) + " min"],
         ["Contando desde", new Date(S.stats.inicio).toLocaleDateString("pt-BR")]
       ];
       el.stats.innerHTML = linhas.map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
@@ -1105,7 +1203,7 @@
     if(!dourada && agora >= proxDourada) mostrarDourada();
     else if(dourada){
       dourada.classList.toggle("sumindo", dourada.fim - agora < 3000);
-      if(agora > dourada.fim) sumirDourada();
+      if(agora > dourada.fim){ S.stats.douradasPerdidas++; sumirDourada(); }
     }
 
     // efeitos dos acessórios
@@ -1119,6 +1217,7 @@
     el.cd.style.width = (left/spinCD()*100) + "%";
 
     desenharCeu(dt, now);
+    S.stats.tempo += dt;
     saveT += dt; if(saveT > 5){ saveT = 0; save(); }
     lentoT += dt; if(lentoT > .5){ lentoT = 0; renderLento(); }
     render();
@@ -1127,6 +1226,10 @@
 
   /* ---------- início ---------- */
   load();
+  // dias diferentes em que jogou (data local, AAAA-MM-DD)
+  const hoje = new Date().toLocaleDateString("sv");
+  if(!S.stats.dias.includes(hoje)) S.stats.dias.push(hoje);
+  el.titulo.addEventListener("click", ()=>{ S.stats.cliquesTitulo++; });
   montarBoneco();
   montarEditor();
   el.nome.value = S.visual.nome;

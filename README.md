@@ -14,7 +14,11 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
   ganhar Frenesi (aura/s x7), Clique divino (clique x15) ou Sorte (pacote de aura).
 - **Loja**: melhorias (compradas várias vezes) e poderes (compra única, dobram uma melhoria
   ou mudam uma regra, como giro mais rápido ou combo x5).
-- **Conquistas**: 45 metas; cada uma dá +2% de aura.
+- **Conquistas**: 115 metas (5 secretas); cada uma dá +2% de aura e +4% de **Brilho**.
+- **Brilho** (como o "leite" do Cookie Clicker): a poça de aura no pé do palco sobe com o Brilho
+  e muda de cor a cada 25 conquistas (Lilás, Safira, Esmeralda, Rubi, Dourada, Arco-íris, Cósmica).
+- **Mascotes** (como os "gatinhos"): 6 poderes caros que multiplicam a aura/s por (1 + Brilho × fator).
+  Eles se multiplicam entre si e aparecem sentados ao lado do boneco.
 - **Boneco**: monte o seu: corpo (6 tipos), rosto (4 expressões), pele, cabelo e cor do cabelo,
   cor da roupa e da calça, chapéu (7 opções) e nome. Algumas opções são liberadas jogando
   (ex.: cartola com 1 mi de aura, auréola com 20 conquistas). Botões 🎲 Aleatório e ↺ Voltar ao padrão.
@@ -22,7 +26,7 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
   (óculos, pulseiras, notas musicais, corrente, coroa, flashes, runas, aura arco-íris).
 - **Status**: estatísticas, exportar/importar save e recomeçar.
 
-## Estado atual (v3)
+## Estado atual (v4)
 
 - O jogo está em três arquivos: `index.html` (estrutura), `style.css` (visual)
   e `game.js` (lógica).
@@ -31,7 +35,7 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
 - Fundo animado em canvas: estrelas, estrelas cadentes e partículas de aura
   (quanto mais aura/s, mais partículas). O palco muda de cor a cada movimento liberado
   e os ícones das melhorias giram em volta do boneco.
-- 12 melhorias, 55 poderes, 45 conquistas.
+- 12 melhorias, 61 poderes (6 mascotes), 115 conquistas.
 - Boneco personalizável (v3): as opções do editor ficam em `EDITOR`, `ROSTOS` e `CHAPEUS`;
   o visual escolhido fica em `S.visual`.
 - Save em `localStorage` com número de versão (`v`). Saves antigos são migrados
@@ -39,7 +43,7 @@ Abra o arquivo `index.html` no navegador. Não precisa instalar nada.
 - Ganho offline: até 1 h a 50%.
 - Os números de balanceamento ficam no começo do `game.js`:
   `UPGRADES`, `GROWTH`, `SPIN_CD`, `COMBO_MAX`, `CONQ_BONUS`, `PODER_TIERS`,
-  `PODERES_EXTRA`, `DOURADA`, `CEU`, `ORBITA`.
+  `PODERES_EXTRA` (inclui os mascotes), `DOURADA`, `BRILHO_POR_CONQ`, `CONQ_POR_POCA`, `POCAS`, `CEU`, `ORBITA`.
 
 ## Regras do projeto
 

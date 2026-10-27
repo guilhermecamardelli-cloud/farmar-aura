@@ -11,6 +11,8 @@
 <div class="app">
 
   <main class="stage" id="stage" data-nivel="0">
+    <!-- poça de aura: sobe com o Brilho e muda de cor a cada 25 conquistas -->
+    <div class="poca" id="poca"><i class="onda o1"></i><i class="onda o2"></i></div>
     <h1 id="titulo">Farmar Aura</h1>
     <div class="score" id="score">0</div>
     <p class="rate"><b id="perClick">1</b> por clique · <b id="perSec">0</b> por segundo</p>
@@ -28,6 +30,7 @@
       <div class="glow" id="glow"></div>
       <div class="orbita" id="orbita"></div>
       <div class="char" id="char"><!-- o boneco é desenhado pelo JS (veja ESTILOS) --></div>
+      <div class="mascotes" id="mascotes"></div>
     </div>
 
     <div class="combo">
@@ -76,6 +79,8 @@
 
     <section class="painel" id="aba-conquistas">
       <h2>Conquistas</h2>
+      <div class="brilho" id="brilhoInfo"></div>
+      <p class="sub" id="mascotesInfo"></p>
       <p class="sub" id="conqInfo"></p>
       <div class="conqs" id="conqList"></div>
       <p class="detalhe" id="conqDetalhe">Toque numa conquista para ver o que pede.</p>

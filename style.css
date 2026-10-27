@@ -29,6 +29,8 @@ body{
 .stage[data-nivel="1"]{--luz:#2d6fd855;--chao:#1d4a9a88}
 .stage[data-nivel="2"]{--luz:#1fc8b044;--chao:#13706a88}
 .stage[data-nivel="3"]{--luz:#ff4fa844;--chao:#7a1d6a88}
+/* tudo do palco fica acima da poça de aura */
+.stage>*:not(.poca):not(.dourada){position:relative;z-index:1}
 h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color:var(--mut)}
 .score{font-size:clamp(2.2rem,8vw,3.4rem);font-weight:800;color:var(--aura);text-shadow:0 0 24px var(--aura);margin-top:6px;line-height:1}
 .rate{color:var(--mut);margin:6px 0 0;font-size:.95rem}
@@ -213,3 +215,27 @@ textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px
 .toast small{color:var(--mut);font-size:.8rem}
 .toast.sai{opacity:0;transform:translateY(10px)}
 @keyframes entra{from{opacity:0;transform:translateY(20px)}}
+
+/* ---------- Brilho: poça de aura no pé do palco ---------- */
+.poca{--poca:#b388ff;position:absolute;left:0;right:0;bottom:0;height:26px;pointer-events:none;z-index:0;
+  background:linear-gradient(var(--poca),transparent 160%);opacity:.32;transition:height 1.2s,background 1.2s}
+.onda{position:absolute;left:0;right:0;top:-11px;height:12px;background:var(--poca);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12'%3E%3Cpath d='M0 6 Q30 0 60 6 T120 6 V12 H0Z'/%3E%3C/svg%3E") repeat-x 0 0/120px 12px;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12'%3E%3Cpath d='M0 6 Q30 0 60 6 T120 6 V12 H0Z'/%3E%3C/svg%3E") repeat-x 0 0/120px 12px;
+  animation:onda 5s linear infinite}
+.onda.o2{top:-7px;opacity:.6;animation-duration:8s;animation-direction:reverse}
+@keyframes onda{to{-webkit-mask-position:120px 0;mask-position:120px 0}}
+.poca.arcoiris{animation:arcoiris 6s linear infinite}
+.poca.cosmica{animation:arcoiris 20s linear infinite;opacity:.45}
+
+/* mascotes sentados ao lado do boneco */
+.mascotes{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:space-between;padding:0 4px;pointer-events:none;z-index:2}
+.mascotes div{display:flex;gap:2px}
+.mascotes span{font-size:28px;filter:drop-shadow(0 3px 3px #0008);animation:pulinho 1.6s ease-in-out infinite}
+@keyframes pulinho{50%{transform:translateY(-5px)}}
+
+/* caixa do Brilho na aba de conquistas */
+.brilho{position:relative;overflow:hidden;background:#0004;border-radius:12px;padding:10px 12px 14px;font-size:.9rem}
+.brilho small{display:block;color:var(--mut);font-size:.78rem;margin-top:2px}
+.brilho i{position:absolute;left:0;bottom:0;height:4px}
+.conq.secreta:not(.feita){border-style:dashed;border-color:#ffffff22}
