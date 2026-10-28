@@ -102,7 +102,7 @@
   };
 
   /* ---------- visual ---------- */
-  const CEU = {taxaMin:3, porDecada:6, taxaMax:45};       // partículas por segundo no fundo
+  const CEU = {taxaMin:2, porDecada:3, taxaMax:18, maxParticulas:120, pxPorEstrela:14000, fps:30};  // fundo animado (leve para PCs fracos)
   const ORBITA = {cada:5, porMelhoria:4, max:32, raio:128}; // ícones girando em volta do boneco
   const QTD_COMPRA = [1, 10, 100];                         // botões "comprar 1 / 10 / 100" da loja
   const VITRINE = {max:40, porLinha:20, passoCor:29};       // fileiras do centro: ícones por fileira e cor
@@ -770,6 +770,7 @@
     const b = document.createElement("button");
     b.className = "up";
     b.innerHTML = '<span class="n"></span><span class="c"></span><span class="d"></span><span class="q"></span>';
+    [b._n, b._c, b._d, b._q] = b.children;
     b.addEventListener("click", ()=>buy(u));
     el.shop.appendChild(b);
     shopBtns[u.id] = b;
@@ -805,7 +806,7 @@
   function farm(x, y){
     // cada clique leva o boneco para a próxima pose
     nextPose();
-    animar(el.svg, "bump");
+    el.svg.animate([{transform:"scale(1)"}, {transform:"scale(1.04,.97)"}, {transform:"scale(1)"}], {duration:140});
 
     combo = Math.min(comboMax(), combo + 1.2);
     const g = perClick();
@@ -962,7 +963,7 @@
     W = window.innerWidth; H = window.innerHeight;
     ceu.width = W*dpr; ceu.height = H*dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    estrelas = Array.from({length: Math.round(W*H/7000)}, ()=>({
+    estrelas = Array.from({length: Math.round(W*H/CEU.pxPorEstrela)}, ()=>({
       x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.3 + .3, f:Math.random()*6.3, v:.4 + Math.random()*1.6
     }));
   }
@@ -979,7 +980,7 @@
     const taxa = Math.min(CEU.taxaMax, CEU.taxaMin + Math.log10(perSec() + 1)*CEU.porDecada);
     const chanceOuro = S.total >= 1e5 ? .4 : .08;
     acum += taxa*dt;
-    while(acum >= 1 && motes.length < 400){
+    while(acum >= 1 && motes.length < CEU.maxParticulas){
       acum--;
       motes.push({x:Math.random()*W, y:H + 10, vx:(Math.random()-.5)*12, vy:18 + Math.random()*40,
                   r:1 + Math.random()*2.4, vida:0, max:6 + Math.random()*7, ouro:Math.random() < chanceOuro});
@@ -988,7 +989,6 @@
     for(const m of motes){
       m.x += m.vx*dt + Math.sin(m.vida*2 + m.r)*.3; m.y -= m.vy*dt;
       const a = Math.sin(Math.PI * m.vida/m.max), cor = m.ouro ? "#ffd54f" : "#b388ff";
-      bolinha(m.x, m.y, m.r*3, cor, a*.12);
       bolinha(m.x, m.y, m.r, cor, a*.8);
     }
 
@@ -1010,56 +1010,61 @@
   }
 
   /* ---------- render (todo quadro) ---------- */
+  // escrever no DOM é caro: estes ajudantes só mexem quando o valor mudou
+  const txt  = (e, v) => { if(e.textContent !== v) e.textContent = v; };
+  const html = (e, v) => { if(e._html !== v){ e._html = v; e.innerHTML = v; } };
   function render(){
-    el.score.textContent = fmt(S.aura);
-    el.perClick.textContent = fmt(perClick());
-    el.perSec.textContent = fmt(perSec());
-    el.mult.textContent = "x" + mult();
-    el.comboBar.style.width = (combo/comboMax()*100) + "%";
+    txt(el.score, fmt(S.aura));
+    txt(el.perClick, fmt(perClick()));
+    txt(el.perSec, fmt(perSec()));
+    txt(el.mult, "x" + mult());
+    // a barra do combo usa transform (não recalcula a página) e é atualizada todo quadro
+    const escala = "scaleX(" + (combo/comboMax()).toFixed(3) + ")";
+    if(el.comboBar.style.transform !== escala) el.comboBar.style.transform = escala;
 
     // brilho cresce com a aura total
     const glow = Math.min(420, 160 + Math.log10(S.total+1)*45);
-    el.glow.style.setProperty("--glow", glow + "px");
+    if(el.glow._g !== glow){ el.glow._g = glow; el.glow.style.setProperty("--glow", glow + "px"); }
     el.arena.classList.toggle("gold", S.total >= 100000);
 
     // movimento atual e o próximo a liberar
     const n = nivelAtual(), prox = NIVEIS[n+1];
-    el.nivelInfo.innerHTML = "Movimento: <b>" + NIVEIS[n].nome + "</b>" +
+    html(el.nivelInfo, "Movimento: <b>" + NIVEIS[n].nome + "</b>" +
       (prox ? " <span>· próximo: " + prox.nome + " com " + fmt(prox.aura) + " de aura</span>"
-            : " <span>· todos liberados!</span>");
-    el.stage.dataset.nivel = n;
+            : " <span>· todos liberados!</span>"));
+    if(el.stage.dataset.nivel !== String(n)) el.stage.dataset.nivel = n;
 
 
     // efeitos dourados ativos
     const agora = Date.now();
-    el.buffs.innerHTML = buffs.map(b=>{
+    html(el.buffs, buffs.map(b=>{
       const s = (b.fim - agora)/1000;
-      return `<span class="buff">${icone(b.ic)}${b.nome} <small>${b.desc} · ${Math.ceil(s)} s</small><i style="width:${s/b.dur*100}%"></i></span>`;
-    }).join("");
+      return `<span class="buff">${icone(b.ic)}${b.nome} <small>${b.desc} · ${Math.ceil(s)} s</small><i style="width:${Math.ceil(s/b.dur*50)*2}%"></i></span>`;
+    }).join(""));
 
     // melhorias: as ainda não descobertas ficam escondidas; só a próxima aparece como "???"
     let misterio = false;
     UPGRADES.forEach(u=>{
       const b = shopBtns[u.id], c = custoN(u, qtdCompra);
       const visivel = own(u.id) > 0 || S.total >= u.base*0.3 || u === UPGRADES[0];
-      if(!visivel && misterio){ b.style.display = "none"; return; }
-      b.style.display = "";
+      const some = !visivel && misterio;
+      if(b.hidden !== some) b.hidden = some;
+      if(some) return;
       b.classList.toggle("misterio", !visivel);
-      b.querySelector(".c").textContent = fmt(c);
-      b.disabled = !visivel || S.aura < c;
+      txt(b._c, fmt(c));
+      const off = !visivel || S.aura < c;
+      if(b.disabled !== off) b.disabled = off;
       if(!visivel){
         misterio = true;
-        b.dataset.ic = "";
-        b.querySelector(".n").innerHTML = icone("secreta") + "???";
-        b.querySelector(".d").textContent = "Continue farmando para descobrir";
-        b.querySelector(".q").textContent = "";
+        html(b._n, icone("secreta") + "???");
+        txt(b._d, "Continue farmando para descobrir");
+        txt(b._q, "");
         return;
       }
       const unid = u.type === "click" ? "por clique" : "aura/s";
-      if(b.dataset.ic !== u.id){ b.dataset.ic = u.id; b.querySelector(".n").innerHTML = icone(u.id) + u.name; }
-      b.querySelector(".d").textContent = "+" + fmt(u.val*multGerador(u)) + " " + unid + " cada" +
-        (own(u.id) ? " · total " + fmt(producao(u)) : "");
-      b.querySelector(".q").textContent = own(u.id) ? "x" + own(u.id) : "";
+      html(b._n, icone(u.id) + u.name);
+      txt(b._d, "+" + fmt(u.val*multGerador(u)) + " " + unid + " cada" + (own(u.id) ? " · total " + fmt(producao(u)) : ""));
+      txt(b._q, own(u.id) ? "x" + own(u.id) : "");
     });
 
     renderPoderes();
@@ -1123,11 +1128,12 @@
     el.vitrineVazia.style.display = donos.length ? "none" : "";
     el.vitrine.innerHTML = donos.map(u=>{
       const n = Math.min(VITRINE.max, own(u.id)), cor = UPGRADES.indexOf(u) * VITRINE.passoCor;
-      const figuras = Array.from({length:n}, (_, k)=>{
+      const figura = k => {
         const col = k % VITRINE.porLinha, lin = Math.floor(k / VITRINE.porLinha);
-        return `<span style="left:${2 + col*(94/VITRINE.porLinha) + lin*2}%;bottom:${8 + lin*26 + (k*7)%5}px;animation-delay:${(k*.37)%1.4}s">${icone(u.id)}</span>`;
-      }).join("");
-      return `<div class="fileira" style="--h:${cor}"><b>${u.name} <small>x${own(u.id)}</small></b>${figuras}</div>`;
+        return `<span style="left:${2 + col*(94/VITRINE.porLinha) + lin*2}%;bottom:${8 + lin*26 + (k*7)%5}px">${icone(u.id)}</span>`;
+      };
+      const grupo = par => `<div class="grupo g${par}">${Array.from({length:n}, (_, k) => k % 2 === par ? figura(k) : "").join("")}</div>`;
+      return `<div class="fileira" style="--h:${cor}"><b>${u.name} <small>x${own(u.id)}</small></b>${grupo(0)}${grupo(1)}</div>`;
     }).join("");
   }
 
@@ -1253,7 +1259,7 @@
   }
 
   /* ---------- loop ---------- */
-  let last = performance.now(), saveT = 0, lentoT = 0;
+  let last = performance.now(), saveT = 0, lentoT = 0, ceuT = 0;
   function tick(now){
     const dt = Math.min(0.25, (now-last)/1000); last = now;
     const agora = Date.now();
@@ -1290,7 +1296,8 @@
     el.spinBtn.disabled = left > 0;
     el.cd.style.width = (left/spinCD()*100) + "%";
 
-    desenharCeu(dt, now);
+    // o céu é desenhado a CEU.fps (metade dos quadros), o resto do jogo segue a 60
+    ceuT += dt; if(ceuT >= 1/CEU.fps){ desenharCeu(ceuT, now); ceuT = 0; }
     S.stats.tempo += dt;
     saveT += dt; if(saveT > 5){ saveT = 0; save(); }
     lentoT += dt; if(lentoT > .5){ lentoT = 0; renderLento(); }

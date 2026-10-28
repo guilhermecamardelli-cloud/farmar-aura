@@ -1,8 +1,9 @@
 :root{
-  --bg1:#0e0b1f; --bg2:#1d1442; --card:rgba(26,21,53,.8); --card2:#241c4a;
+  --bg1:#0e0b1f; --bg2:#1d1442; --card:rgba(26,21,53,.93); --card2:#241c4a;
   --txt:#f3efff; --mut:#a79ecb; --aura:#b388ff; --gold:#ffd54f; --ok:#69f0ae;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 html,body{margin:0;height:100%}
 body{
   background:radial-gradient(ellipse at 30% 0%,var(--bg2),var(--bg1) 70%) fixed;
@@ -33,7 +34,6 @@ body{
     radial-gradient(ellipse 70% 30% at 50% 100%,var(--chao),transparent 70%),
     radial-gradient(circle at 50% 42%,var(--luz),transparent 55%),
     var(--card);
-  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
   border:1px solid #ffffff10;border-radius:20px;padding:16px;
   display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;
 }
@@ -79,7 +79,7 @@ h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color
 
 /* ícones das melhorias girando em volta do boneco */
 .orbita{position:absolute;left:50%;top:48%;width:0;height:0;pointer-events:none;animation:gira 36s linear infinite}
-.orbita span{position:absolute;left:-11px;top:-11px;width:22px;height:22px;filter:drop-shadow(0 0 4px #b388ff)}
+.orbita span{position:absolute;left:-11px;top:-11px;width:22px;height:22px}
 
 /* flash de câmera (Ensaio fotográfico) */
 .arena::before{content:"";position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(circle,#fff,transparent 65%);
@@ -97,8 +97,6 @@ h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color
 
 /* ---------- boneco (SVG montado pelo JS) ---------- */
 .char svg{position:absolute;left:-100px;top:-14px;overflow:visible;transform-origin:50% 85%}
-.char svg.bump{animation:bump .14s ease-out}
-@keyframes bump{40%{transform:scale(1.04,.97)}}
 /* articulações: o JS gira cada uma; o ponto de giro (transform-origin) vem do estilo */
 .junta{transition:transform .14s ease-out}
 /* acessórios: escondidos até a arena ganhar a classe "tem-..." */
@@ -137,7 +135,7 @@ h1{margin:0;font-size:1.1rem;letter-spacing:.15em;text-transform:uppercase;color
 .combo{width:100%;max-width:300px}
 .combo .lbl{display:flex;justify-content:space-between;font-size:.85rem;color:var(--mut);margin-bottom:4px}
 .bar{height:10px;background:#0006;border-radius:99px;overflow:hidden}
-.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--aura),var(--gold));transition:width .1s}
+.bar>i{display:block;height:100%;width:100%;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,var(--aura),var(--gold))}
 
 .btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center}
 button{font:inherit;color:var(--txt);border:0;cursor:pointer}
@@ -149,9 +147,10 @@ button{font:inherit;color:var(--txt);border:0;cursor:pointer}
 .nivel span{color:var(--mut)}
 
 /* ---------- painel lateral com abas ---------- */
-.centro,.loja{background:var(--card);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid #ffffff10;
+.centro,.loja{background:var(--card);border:1px solid #ffffff10;
       border-radius:20px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px}
 .paineis{display:flex;flex-direction:column}
+.stage>*,.centro>*,.loja>*{flex-shrink:0}
 .abas{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#0004;padding:4px;border-radius:12px}
 .abas button{background:none;color:var(--mut);padding:8px 2px;border-radius:9px;font-size:.82rem;font-weight:600}
 .abas button.ativo{background:var(--card2);color:var(--txt)}
@@ -239,19 +238,19 @@ textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px
 /* ---------- Brilho: poça de aura no pé do palco ---------- */
 .poca{--poca:#b388ff;position:absolute;left:0;right:0;bottom:0;height:26px;pointer-events:none;z-index:0;
   background:linear-gradient(var(--poca),transparent 160%);opacity:.32;transition:height 1.2s,background 1.2s}
-.onda{position:absolute;left:0;right:0;top:-11px;height:12px;background:var(--poca);
+.onda{position:absolute;left:0;width:calc(100% + 120px);top:-11px;height:12px;background:var(--poca);
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12'%3E%3Cpath d='M0 6 Q30 0 60 6 T120 6 V12 H0Z'/%3E%3C/svg%3E") repeat-x 0 0/120px 12px;
   mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 12'%3E%3Cpath d='M0 6 Q30 0 60 6 T120 6 V12 H0Z'/%3E%3C/svg%3E") repeat-x 0 0/120px 12px;
   animation:onda 5s linear infinite}
 .onda.o2{top:-7px;opacity:.6;animation-duration:8s;animation-direction:reverse}
-@keyframes onda{to{-webkit-mask-position:120px 0;mask-position:120px 0}}
+@keyframes onda{to{transform:translateX(-120px)}}
 .poca.arcoiris{animation:arcoiris 6s linear infinite}
 .poca.cosmica{animation:arcoiris 20s linear infinite;opacity:.45}
 
 /* mascotes sentados ao lado do boneco */
 .mascotes{position:absolute;left:0;right:0;bottom:8px;display:flex;justify-content:space-between;padding:0 4px;pointer-events:none;z-index:2}
 .mascotes div{display:flex;gap:2px}
-.mascotes span{width:34px;height:34px;filter:drop-shadow(0 3px 3px #0008);animation:pulinho 1.6s ease-in-out infinite}
+.mascotes span{width:34px;height:34px;animation:pulinho 1.6s ease-in-out infinite}
 @keyframes pulinho{50%{transform:translateY(-5px)}}
 
 /* caixa do Brilho na aba de conquistas */
@@ -287,9 +286,12 @@ textarea{width:100%;resize:vertical;background:#0005;color:var(--txt);border:1px
 .fileira::before{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;background:hsl(var(--h) 40% 10% / .7)}
 .fileira b{position:absolute;right:6px;top:5px;z-index:2;font-size:.75rem;background:#000a;padding:2px 8px;border-radius:99px}
 .fileira b small{color:var(--ok)}
-.fileira span{position:absolute;width:24px;height:24px;animation:trabalha 1.4s ease-in-out infinite;filter:drop-shadow(0 2px 2px #0008)}
+.fileira span{position:absolute;width:24px;height:24px}
+/* cada fileira balança em dois grupos alternados: poucas animações, mesmo efeito */
+.fileira .grupo{position:absolute;inset:0;animation:trabalha 1.4s ease-in-out infinite}
+.fileira .g1{animation-delay:-.7s}
 .fileira .ic{width:100%;height:100%;margin:0}
-@keyframes trabalha{50%{transform:translateY(-4px) rotate(-6deg)}}
+@keyframes trabalha{50%{transform:translateY(-4px)}}
 
 /* ---------- loja ---------- */
 .loja h2 .ic{width:1.3em;height:1.3em}

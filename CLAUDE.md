@@ -30,6 +30,11 @@ README.md    regras, decisões e próximos passos
 - Fora do MVP: backend, pagamento, chat, multiplayer, IA. Skins (3 a 5) ficam como monetização futura.
 
 ## Convenções
+- Desempenho (o jogo precisa rodar em PC fraco, ex.: i3 antigo com vídeo integrado):
+  - no `render()` (todo quadro) só escrever no DOM pelo `txt()`/`html()`, que ignoram valores iguais;
+  - animar com `transform`/`opacity`; nada de `backdrop-filter`, nem `filter`/`drop-shadow` em elementos animados ou repetidos;
+  - poucas animações: grupos animados em vez de uma animação por ícone; o céu (`CEU`) roda a 30 fps.
+- Ao publicar, aumentar o `?v=` dos arquivos no `index.html` (evita o navegador misturar CSS velho com JS novo).
 - Manter simples e fácil de ler; comentários curtos em português.
 - Números de jogo só nas constantes do topo, nunca espalhados pelo código.
 - Um passo de cada vez (seguir a ordem dos próximos passos).
